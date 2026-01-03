@@ -15,12 +15,14 @@ export async function GET(req: NextRequest) {
     }
 
     // 2️⃣ Generate Google OAuth URL with user.id in state
+    const state = JSON.stringify({ userId });
     const authUrl = oauth2Client.generateAuthUrl({
-      access_type: "offline", // allows refresh_token
-      prompt: "consent",      // forces consent every time
+      access_type: "offline",
+      prompt: "consent",
       scope: GMAIL_SCOPES,
-      state: userId           // securely map tokens to this user
+      state: Buffer.from(state).toString("base64"), // encode safely
     });
+
 
     // 3️⃣ Redirect user to Google OAuth consent screen
     return NextResponse.redirect(authUrl);

@@ -4,16 +4,27 @@ create extension if not exists "pgcrypto";
 -- Create table
 create table if not exists user_gmail_tokens (
     id uuid primary key default gen_random_uuid(),
-    user_id uuid not null references auth.users(id) on delete cascade unique, -- UNIQUE for upsert
+
+    -- ❌ REMOVE unique here
+    user_id uuid not null references auth.users(id) on delete cascade,
+
+    -- Gmail account identifier
+    email_address text not null,
+
     access_token text not null,
     refresh_token text not null,
     scope text not null,
     token_type text not null,
     expiry_date bigint not null,
-    watch_history_id text,          -- store Gmail historyId
-    watch_expiration bigint,        -- store Gmail watch expiration timestamp
-    created_at timestamp with time zone default now(),
-    updated_at timestamp with time zone default now()
+
+    watch_history_id text,
+    watch_expiration bigint,
+
+    created_at timestamptz default now(),
+    updated_at timestamptz default now(),
+
+    -- ✅ THIS is the critical fix
+    constraint user_gmail_unique unique (user_id, email_address)
 );
 
 -- Enable Row Level Security
@@ -38,8 +49,8 @@ create policy "Update own tokens"
     using (auth.uid() = user_id)
     with check (auth.uid() = user_id);
 
--- Optional: prevent users from deleting tokens
-create policy "Prevent delete by users"
+-- Allow users to delete their own tokens
+create policy "Allow users to delete their own Gmail"
     on user_gmail_tokens
     for delete
-    using (false);
+    using (auth.uid() = user_id)

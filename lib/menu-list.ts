@@ -45,15 +45,10 @@ export function getMenuList(pathname: string): Group[] {
       groupLabel: "Workflow",
       menus: [
         {
-          href: "/pods",
-          label: "Pods",
+          href: "/integrations",
+          label: "Integrations",
           icon: SquarePen,
         },
-        {
-          href: "/leads",
-          label: "Leads",
-          icon: User
-        }
         // {
         //   href: "",
         //   label: "Pods",

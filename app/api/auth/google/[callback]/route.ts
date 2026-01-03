@@ -8,11 +8,12 @@ export async function GET(req: NextRequest) {
     // 1️⃣ Get Google OAuth code and userId from state
     const { searchParams } = new URL(req.url);
     const code = searchParams.get("code");
-    const userId = searchParams.get("state");
+    const stateEncoded = searchParams.get("state");
+    const { userId } = JSON.parse(Buffer.from(stateEncoded!, "base64").toString("utf-8"));
 
     if (!code || !userId) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/connect-gmail?error=denied`
+        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=denied`
       );
     }
 
@@ -20,10 +21,17 @@ export async function GET(req: NextRequest) {
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 
-    console.log("OAuth tokens received:", tokens);
+    // 2.5️⃣ Fetch Google account email
+    const oauth2 = google.oauth2("v2");
+    const { data: profile } = await oauth2.userinfo.get({
+      auth: oauth2Client,
+    });
+    const email = profile.email;
 
     // 3️⃣ Create Supabase service-role client
     const supabase = await createClient({ useServiceRole: true });
+
+    console.log("auth details:", userId, email)
 
     // 4️⃣ Upsert Gmail tokens (user may or may not exist yet)
     const { error: tokenError } = await supabase
@@ -36,15 +44,17 @@ export async function GET(req: NextRequest) {
           scope: tokens.scope ?? null,
           token_type: tokens.token_type ?? null,
           expiry_date: tokens.expiry_date ?? null,
+          email_address: email ?? null,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "user_id" }
+        { onConflict: "user_id,email_address" }
+
       );
 
     if (tokenError) {
       console.error("Failed to upsert Gmail tokens:", tokenError);
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/connect-gmail?error=server`
+        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=server`
       );
     }
 
@@ -70,7 +80,9 @@ export async function GET(req: NextRequest) {
           watch_expiration: watchRes.data.expiration, // ms timestamp
           updated_at: new Date().toISOString(),
         })
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("email_address", email);
+
     } catch (watchErr) {
       // Do NOT block OAuth success
       console.error("Failed to enable Gmail watch:", watchErr);
@@ -78,12 +90,12 @@ export async function GET(req: NextRequest) {
 
     // 7️⃣ Redirect back to UI
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/connect-gmail?success=true`
+      `${process.env.NEXT_PUBLIC_APP_URL}/integrations?success=true`
     );
   } catch (err) {
     console.error("Gmail OAuth callback error:", err);
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/connect-gmail?error=server`
+      `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=server`
     );
   }
 }
