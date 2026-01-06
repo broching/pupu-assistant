@@ -6,7 +6,10 @@ import {
   SquarePen,
   LayoutGrid,
   LucideIcon,
-  User
+  User,
+  FilterIcon,
+  BluetoothConnectedIcon,
+  Settings2
 } from "lucide-react";
 
 type Submenu = {
@@ -47,7 +50,12 @@ export function getMenuList(pathname: string): Group[] {
         {
           href: "/integrations",
           label: "Integrations",
-          icon: SquarePen,
+          icon: Settings2,
+        },
+        {
+          href: "/filters",
+          label: "Filters",
+          icon: FilterIcon,
         },
         // {
         //   href: "",

@@ -20,6 +20,10 @@ create table if not exists user_gmail_tokens (
     watch_history_id text,
     watch_expiration bigint,
 
+    connection_name text null,
+    filter_id uuid null,
+    filter_name text null,
+
     created_at timestamptz default now(),
     updated_at timestamptz default now(),
 
@@ -53,4 +57,4 @@ create policy "Update own tokens"
 create policy "Allow users to delete their own Gmail"
     on user_gmail_tokens
     for delete
-    using (auth.uid() = user_id)
+    using (auth.uid() = user_id);
