@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     // 2️⃣ Exchange authorization code for tokens
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
+    console.log("tokens from oauth:", tokens)
 
     // 2.5️⃣ Fetch Google account email
     const oauth2 = google.oauth2("v2");

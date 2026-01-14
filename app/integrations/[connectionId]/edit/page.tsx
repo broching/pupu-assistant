@@ -231,28 +231,46 @@ export default function EditIntegrationPage() {
                         </div>
 
                         {/* Filter Select */}
-                        <div className="space-y-2">
-                            <Label>Filter</Label>
-                            <Select
-                                value={filterId}
-                                onValueChange={async (val) => {
-                                    setFilterId(val);
-                                    await fetchFilter(val);
-                                }}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a filter" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="default">Default (System Basic filter)</SelectItem>
-                                    {filters.map((f) => (
-                                        <SelectItem key={f.id} value={f.id}>
-                                            {f.filter_name}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                            {/* Left: Filter dropdown */}
+                            <div className="md:col-span-2 space-y-2">
+                                <Label>Filter</Label>
+                                <Select
+                                    value={filterId}
+                                    onValueChange={async (val) => {
+                                        setFilterId(val);
+                                        await fetchFilter(val);
+                                    }}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a filter" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="default">
+                                            Default (System Basic filter)
                                         </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                        {filters.map((f) => (
+                                            <SelectItem key={f.id} value={f.id}>
+                                                {f.filter_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Right: Helper CTA */}
+                            <div className="text-sm text-muted-foreground">
+                                <span>Don’t see the filter you want?</span>
+                                <Button
+                                    type="button"
+                                    onClick={() => router.push("/filters/create-filter")}
+                                    className="text-left font-medium mt-2"
+                                >
+                                    Create a new filter
+                                </Button>
+                            </div>
                         </div>
+
 
                         {/* Filter Form */}
                         <fieldset disabled={filterId === "default" || filterLoading}>
