@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { parseGmailMessage } from "@/lib/gmail/parseGmail";
 import { formatEmailMessage } from "@/lib/telegram/formatTelegramMessage";
 import { sendTelegramMessage } from "@/lib/telegram/sendTelegramMessage";
+import { analyzeEmailWithAI } from "./analyszeEmailWithAi";
+import { FilterConfig } from "../geminiAI/geminiSchemas";
 
 export async function getUserTokens(supabase: any, emailAddress: string) {
     const { data, error } = await supabase
@@ -97,31 +99,203 @@ export async function fetchGmailHistory(gmail: any, userTokens: any, supabase: a
 }
 
 export async function processHistories(
-    gmail: any,
-    histories: any[],
-    userTokens: any
+  supabase: any,
+  gmail: any,
+  histories: any[],
+  userTokens: any,
+  filter: any
 ) {
-    for (const h of histories) {
-        if (!h.messages) continue;
+  for (const h of histories) {
+    if (!h.messages) continue;
 
-        for (const msg of h.messages) {
-            try {
-                const fullMessage = await gmail.users.messages.get({
-                    userId: "me",
-                    id: msg.id!,
-                    format: "full",
-                });
+    for (const msg of h.messages) {
+      try {
+        // ✅ Step 0: Check DB first to avoid unnecessary AI calls
+        const { data: existing, error: fetchError } = await supabase
+          .from("email_ai_responses")
+          .select("id")
+          .eq("message_id", msg.id)
+          .eq("user_id", userTokens.user_id)
+          .maybeSingle();
 
-                const email = parseGmailMessage(fullMessage.data);
-                const telegramText = formatEmailMessage(email);
-
-                await sendTelegramMessage(userTokens.user_id, telegramText);
-            } catch (err) {
-                console.error("❌ Failed to process message", {
-                    messageId: msg.id,
-                    error: err,
-                });
-            }
+        if (fetchError) {
+          console.error("❌ Failed to check existing response", fetchError);
+          continue;
         }
+
+        if (existing) {
+          console.log(
+            `⚠️ Skipping message ${msg.id} for user ${userTokens.user_id}: already processed`
+          );
+          continue; // Skip AI call entirely
+        }
+
+        // ✅ Step 1: Fetch full Gmail message
+        const fullMessage = await gmail.users.messages.get({
+          userId: "me",
+          id: msg.id!,
+          format: "full",
+        });
+
+        const email = parseGmailMessage(fullMessage.data);
+        console.log(email.subject, email.body);
+
+        // ✅ Step 2: Call AI
+        const analysis = await analyzeEmailWithAI({
+          subject: email.subject,
+          body: email.body,
+          filter: filter,
+        });
+
+        // Build Gmail web link
+        const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
+
+        // Append link to the reply message
+        const replyUserMessage = `${analysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
+
+        // ✅ Step 3: Insert into Supabase with upsert to prevent race duplicates
+        const { data, error } = await supabase
+          .from("email_ai_responses")
+          .insert(
+            {
+              user_id: userTokens.user_id,
+              message_id: msg.id,
+              reply_message: analysis.replyMessage,
+              message_score: analysis.messageScore,
+              flagged_keywords: analysis.keywordsFlagged,
+              usage_tokens: null, // Optional: replace with analysis.usageTokens if available
+            },
+            {
+              onConflict: ["user_id", "message_id"], // prevent duplicates
+              ignoreDuplicates: true,
+            }
+          )
+          .select("id")
+          .maybeSingle();
+
+        if (!data) {
+          console.log(
+            `⚠️ Duplicate detected in DB for message ${msg.id}, skipping Telegram`
+          );
+          continue; // Skip sending Telegram
+        }
+
+        // ✅ Step 4: Send Telegram only after successful insert
+        await sendTelegramMessage(userTokens.user_id, replyUserMessage);
+        console.log(
+          `✅ Stored AI response and sent Telegram for message ${msg.id}`
+        );
+      } catch (err) {
+        console.error("❌ Failed to process message", {
+          messageId: msg.id,
+          error: err,
+        });
+      }
     }
+  }
+}
+
+
+
+
+const WATCH_RENEW_BUFFER_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+export async function ensureValidWatch({
+    gmail,
+    supabase,
+    userTokens,
+}: {
+    gmail: any;
+    supabase: any;
+    userTokens: any;
+}) {
+    const now = Date.now();
+    const expiration = Number(userTokens.watch_expiration || 0);
+
+    const isExpired = expiration <= now;
+    const isExpiringSoon = expiration - now <= WATCH_RENEW_BUFFER_MS;
+
+    if (!isExpired && !isExpiringSoon) {
+        console.log('⏰ Watch still valid')
+        return userTokens.watch_history_id;
+    }
+
+    console.log("⏰ Watch expired or expiring — renewing", {
+        userId: userTokens.user_id,
+        expiration,
+    });
+
+    try {
+        const res = await gmail.users.watch({
+            userId: "me",
+            requestBody: {
+                topicName: process.env.GMAIL_PUBSUB_TOPIC!,
+                labelIds: ["INBOX"],
+            },
+        });
+
+        const { historyId, expiration: newExpiration } = res.data;
+
+        await supabase
+            .from("user_gmail_tokens")
+            .update({
+                watch_history_id: historyId,
+                watch_expiration: Number(newExpiration),
+                updated_at: new Date().toISOString(),
+            })
+            .eq("email_address", userTokens.email_address);
+
+        console.log("✅ Gmail watch renewed", {
+            userId: userTokens.user_id,
+            newExpiration,
+        });
+
+        return historyId;
+    } catch (err: any) {
+        const data = err?.response?.data;
+
+        console.error("❌ Failed to renew watch", {
+            userId: userTokens.user_id,
+            data,
+        });
+
+        // Refresh token revoked / invalid → hard stop
+        if (
+            data?.error === "invalid_grant" ||
+            data?.error_description?.includes("Invalid Credentials")
+        ) {
+            await supabase
+                .from("user_gmail_tokens")
+                .update({
+                    status: "reauth_required",
+                    updated_at: new Date().toISOString(),
+                })
+                .eq("email_address", userTokens.email_address);
+        }
+
+        throw err;
+    }
+}
+
+
+export async function getUserFilter(userId: string, filterId: string) {
+    const supabase = await createClient({ useServiceRole: true });
+
+    if (!filterId || filterId === "default") {
+        return null; // no filter assigned or using default
+    }
+
+    const { data: filter, error } = await supabase
+        .from("filters")
+        .select("*")
+        .eq("id", filterId)
+        .eq("user_id", userId) // ensure filter belongs to the user
+        .single();
+
+    if (error) {
+        console.error("❌ Failed to fetch user filter", { userId, filterId, error });
+        return null;
+    }
+
+    return filter;
 }
