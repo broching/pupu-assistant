@@ -151,7 +151,7 @@ export async function processHistories(
         const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
 
         // Append link to the reply message
-        const replyUserMessage = `${analysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
+        const replyUserMessage = `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
 
         // ✅ Step 3: Insert into Supabase with upsert to prevent race duplicates
         const { data, error } = await supabase
@@ -160,10 +160,10 @@ export async function processHistories(
             {
               user_id: userTokens.user_id,
               message_id: msg.id,
-              reply_message: analysis.replyMessage,
-              message_score: analysis.messageScore,
-              flagged_keywords: analysis.keywordsFlagged,
-              usage_tokens: null, // Optional: replace with analysis.usageTokens if available
+              reply_message: analysis.emailAnalysis.replyMessage,
+              message_score: analysis.emailAnalysis.messageScore,
+              flagged_keywords: analysis.emailAnalysis.keywordsFlagged,
+              usage_tokens: analysis.usageTokens, // Optional: replace with analysis.usageTokens if available
             },
             {
               onConflict: ["user_id", "message_id"], // prevent duplicates

@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
+import { EmailAnalysisResult } from "./geminiSchemas";
 
 export type GeminiGenerateOptions = {
     temperature?: number;
@@ -51,14 +52,19 @@ export class GeminiAI {
     /**
      * Guaranteed schema-valid JSON generation
      */
-    async generateJSON<T>(prompt: string): Promise<T> {
+    async generateJSON<T>(prompt: string): Promise<EmailAnalysisResult> {
         const result = await this.jsonModel.generateContent(prompt);
         const text = result.response.text().trim();
+        console.log('res', result.response.usageMetadata)
         const jsonText = reconstructJson(text);
-
+        const parsedText = JSON.parse(jsonText)
+        const returnObj = {
+            emailAnalysis: parsedText,
+            usageTokens: result.response.usageMetadata
+        }
 
         try {
-            return JSON.parse(text) as T;
+            return returnObj;
         } catch (err) {
             console.error("❌ Gemini returned invalid JSON (should not happen):", jsonText);
             throw new Error("Invalid JSON returned from Gemini");
