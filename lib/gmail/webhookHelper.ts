@@ -99,101 +99,149 @@ export async function fetchGmailHistory(gmail: any, userTokens: any, supabase: a
 }
 
 export async function processHistories(
-  supabase: any,
-  gmail: any,
-  histories: any[],
-  userTokens: any,
-  filter: any
+    supabase: any,
+    gmail: any,
+    histories: any[],
+    userTokens: any,
+    filter: any
 ) {
-  for (const h of histories) {
-    if (!h.messages) continue;
+    for (const h of histories) {
+        if (!h.messages) continue;
 
-    for (const msg of h.messages) {
-      try {
-        // ✅ Step 0: Check DB first to avoid unnecessary AI calls
-        const { data: existing, error: fetchError } = await supabase
-          .from("email_ai_responses")
-          .select("id")
-          .eq("message_id", msg.id)
-          .eq("user_id", userTokens.user_id)
-          .maybeSingle();
+        for (const msg of h.messages) {
+            try {
+                // ==================================================
+                // STEP 0: DB dedupe check (HARD STOP)
+                // ==================================================
+                const { data: existing, error: fetchError } = await supabase
+                    .from("email_ai_responses")
+                    .select("id")
+                    .eq("message_id", msg.id)
+                    .eq("user_id", userTokens.user_id)
+                    .maybeSingle();
 
-        if (fetchError) {
-          console.error("❌ Failed to check existing response", fetchError);
-          continue;
-        }
+                if (fetchError) {
+                    console.error("❌ Failed to check existing response", fetchError);
+                    continue;
+                }
 
-        if (existing) {
-          console.log(
-            `⚠️ Skipping message ${msg.id} for user ${userTokens.user_id}: already processed`
-          );
-          continue; // Skip AI call entirely
-        }
+                if (existing) {
+                    console.log(
+                        `⚠️ Skipping message ${msg.id} for user ${userTokens.user_id}: already processed`
+                    );
+                    continue;
+                }
 
-        // ✅ Step 1: Fetch full Gmail message
-        const fullMessage = await gmail.users.messages.get({
-          userId: "me",
-          id: msg.id!,
-          format: "full",
-        });
+                // ==================================================
+                // STEP 1: Fetch Gmail message
+                // ==================================================
+                const fullMessage = await gmail.users.messages.get({
+                    userId: "me",
+                    id: msg.id!,
+                    format: "full",
+                });
 
-        const email = parseGmailMessage(fullMessage.data);
-        console.log(email.subject, email.body);
+                const email = parseGmailMessage(fullMessage.data);
 
-        // ✅ Step 2: Call AI
-        const analysis = await analyzeEmailWithAI({
-          subject: email.subject,
-          body: email.body,
-          filter: filter,
-        });
+                // ==================================================
+                // STEP 2: Extract boolean-trigger signals
+                // ==================================================
+                const signals = extractEmailSignals(email);
 
-        // Build Gmail web link
-        const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
+                const booleanOverride =
+                    (filter.enable_first_time_sender_alert && signals.isFirstTimeSender) ||
+                    (filter.enable_thread_reply_alert && signals.isThreadReply) ||
+                    (filter.enable_deadline_alert && signals.hasDeadline) ||
+                    (filter.enable_subscription_payment_alert && signals.isSubscription);
 
-        // Append link to the reply message
-        const replyUserMessage = `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
+                // ==================================================
+                // STEP 3: AI analysis (always required for DB + scoring)
+                // ==================================================
+                const analysis = await analyzeEmailWithAI({
+                    sender: email.from,
+                    subject: email.subject,
+                    body: email.body,
+                    filter,
+                });
 
-        // ✅ Step 3: Insert into Supabase with upsert to prevent race duplicates
-        const { data, error } = await supabase
-          .from("email_ai_responses")
-          .insert(
-            {
-              user_id: userTokens.user_id,
-              message_id: msg.id,
-              reply_message: analysis.emailAnalysis.replyMessage,
-              message_score: analysis.emailAnalysis.messageScore,
-              flagged_keywords: analysis.emailAnalysis.keywordsFlagged,
-              usage_tokens: analysis.usageTokens, // Optional: replace with analysis.usageTokens if available
-            },
-            {
-              onConflict: ["user_id", "message_id"], // prevent duplicates
-              ignoreDuplicates: true,
+                const score = analysis.emailAnalysis.messageScore;
+                const mode = filter.notification_mode ?? "balanced";
+
+                const scorePass =
+                    (mode === "aggressive" && score >= 30) ||
+                    (mode === "balanced" && score >= 50) ||
+                    (mode === "minimal" && score >= 70);
+
+                const shouldSendTelegram = booleanOverride || scorePass;
+
+                if (!shouldSendTelegram) {
+                    console.log(
+                        `🔕 Suppressed: no boolean override + score ${score} below ${mode} threshold`
+                    );
+                }
+
+                // ==================================================
+                // STEP 4: Insert into DB (authoritative dedupe)
+                // ==================================================
+                const { data, error } = await supabase
+                    .from("email_ai_responses")
+                    .insert(
+                        {
+                            user_id: userTokens.user_id,
+                            message_id: msg.id,
+                            reply_message: analysis.emailAnalysis.replyMessage,
+                            message_score: score,
+                            flagged_keywords: analysis.emailAnalysis.keywordsFlagged,
+                            usage_tokens: analysis.usageTokens ?? null,
+                        },
+                        {
+                            onConflict: ["user_id", "message_id"],
+                            ignoreDuplicates: true,
+                        }
+                    )
+                    .select("id")
+                    .maybeSingle();
+
+                if (!data) {
+                    console.log(
+                        `⚠️ Race duplicate detected for message ${msg.id}, skipping Telegram`
+                    );
+                    continue;
+                }
+
+                // ==================================================
+                // STEP 5: Telegram send (LAST STEP)
+                // ==================================================
+                if (shouldSendTelegram) {
+                    const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
+                    const replyUserMessage =
+                        `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
+
+                    await sendTelegramMessage(userTokens.user_id, replyUserMessage);
+
+                    console.log(
+                        `✅ Sent Telegram for message ${msg.id} (override=${booleanOverride}, score=${score})`
+                    );
+                }
+            } catch (err) {
+                console.error("❌ Failed to process message", {
+                    messageId: msg.id,
+                    error: err,
+                });
             }
-          )
-          .select("id")
-          .maybeSingle();
-
-        if (!data) {
-          console.log(
-            `⚠️ Duplicate detected in DB for message ${msg.id}, skipping Telegram`
-          );
-          continue; // Skip sending Telegram
         }
-
-        // ✅ Step 4: Send Telegram only after successful insert
-        await sendTelegramMessage(userTokens.user_id, replyUserMessage);
-        console.log(
-          `✅ Stored AI response and sent Telegram for message ${msg.id}`
-        );
-      } catch (err) {
-        console.error("❌ Failed to process message", {
-          messageId: msg.id,
-          error: err,
-        });
-      }
     }
-  }
 }
+
+function extractEmailSignals(email: any) {
+    return {
+        isFirstTimeSender: false, // replace with real logic if needed
+        isThreadReply: email.isThreadReply,
+        hasDeadline: /\b(due|deadline|by\s+\d{1,2}|\d{1,2}\/\d{1,2})\b/i.test(email.body),
+        isSubscription: /\b(invoice|payment|billing|subscription|renewal)\b/i.test(email.body),
+    };
+}
+
 
 
 

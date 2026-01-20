@@ -1,4 +1,3 @@
-// lib/gmail/parseGmailMessage.ts
 export function parseGmailMessage(message: any) {
   const headers = message.payload.headers || [];
 
@@ -9,13 +8,14 @@ export function parseGmailMessage(message: any) {
   const from = getHeader("From");
   const to = getHeader("To");
   const date = getHeader("Date");
+  const inReplyTo = getHeader("In-Reply-To");
+  const references = getHeader("References")?.split(" ") || [];
+
+  const isThreadReply = !!inReplyTo;
 
   // Recursively extract text/plain
   const extractPlainText = (payload: any): string | null => {
-    if (
-      payload.mimeType === "text/plain" &&
-      payload.body?.data
-    ) {
+    if (payload.mimeType === "text/plain" && payload.body?.data) {
       return Buffer.from(payload.body.data, "base64").toString("utf-8");
     }
 
@@ -30,12 +30,20 @@ export function parseGmailMessage(message: any) {
   };
 
   const rawBody =
-    extractPlainText(message.payload) ||
-    "(No plain text body found)";
+    extractPlainText(message.payload) || "(No plain text body found)";
 
   const body = cleanEmailBody(rawBody);
 
-  return { subject, from, to, date, body };
+  return {
+    subject,
+    from,
+    to,
+    date,
+    body,
+    isThreadReply,
+    threadIds: references,
+    inReplyTo,
+  };
 }
 
 

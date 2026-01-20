@@ -3,18 +3,21 @@ import { buildEmailAnalysisPrompt } from "../geminiAI/geminiPrompt";
 import { EmailAnalysisResult } from "../geminiAI/geminiSchemas";
 
 export async function analyzeEmailWithAI(params: {
-  subject: string;
-  body: string;
-  filter: any;
+    sender: string,
+    subject: string;
+    body: string;
+    filter: any;
 }): Promise<EmailAnalysisResult> {
-  const ai = new GeminiAI();
+    const ai = new GeminiAI();
 
-  const prompt = buildEmailAnalysisPrompt({
-    emailSubject: params.subject,
-    emailBody: params.body,
-    filter: params.filter,
-  });
+    const prompt = buildEmailAnalysisPrompt({
+        emailSender: params.sender,
+        emailSubject: params.subject,
+        emailBody: params.body,
+        filter: params.filter,
+    });
+    console.log('test prompt:', prompt)
 
-  const res = ai.generateJSON<EmailAnalysisResult>(prompt);
-  return res;
+    const res = ai.generateJSON<EmailAnalysisResult>(prompt);
+    return res;
 }

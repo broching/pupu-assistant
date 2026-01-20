@@ -1,6 +1,7 @@
 import { FilterConfig } from "./geminiSchemas";
 
 export function buildEmailAnalysisPrompt(params: {
+  emailSender: string;
   emailSubject: string;
   emailBody: string;
   filter: any;
@@ -23,14 +24,12 @@ CRITICAL OUTPUT RULES (MUST FOLLOW):
 - DO NOT wrap the response in markdown, code blocks, or backticks.
 - DO NOT include explanations, comments, or extra text.
 - DO NOT include trailing commas.
-- DO NOT insert line breaks inside string values.
-- All URLs MUST be on a single line with no whitespace.
+- Line breaks are ALLOWED between sections, but NOT inside URLs.
 - The response MUST be directly parseable using JSON.parse().
-- If there are many links, include at most the 2 most important ones. 
+- All URLs MUST be on a single line with no whitespace.
+- If there are many links, include at most the 2 most important ones.
 - Do NOT include any URL longer than 120 characters.
-- If including long or complex links would cause the JSON to be incomplete or truncated, OMIT the links. JSON correctness is more important than link completeness.
-
-
+- If including long or complex links would cause truncation or invalid JSON, OMIT the links.
 
 The JSON MUST strictly follow this schema:
 
@@ -40,41 +39,77 @@ The JSON MUST strictly follow this schema:
   "replyMessage": string
 }
 
-replyMessage requirements:
-1. Start with a friendly greeting (e.g. "Hello!").
-2. Briefly and accurately summarize the email.
-3. Explain why the email is important.
-4. INCLUDE ALL actionable details EXACTLY as shown in the email, including URLs, dates, numbers, and reference IDs.
-5. If a link is present, include it directly in the replyMessage as plain text.
-6. The entire replyMessage MUST be a single-line string with no line breaks.
+replyMessage FORMAT (MANDATORY):
+The replyMessage MUST follow this exact structure, in this exact order,
+with EXACTLY ONE blank line between each section:
 
+1. Alert title with emoji + brand/product/object (e.g. "⚠️ Action Required (Ngrok): Secure Your Endpoint")
+
+[blank line]
+
+2. Short summary of what happened, while including the brand/product/object.
+3. Why this matters / risk.
+
+[blank line]
+
+4. Clear next steps, written as numbered steps using emojis like 1️⃣ 2️⃣
+
+[blank line]
+
+5. Primary action link (if available).
+
+[blank line]
+
+6. Secondary action link (only if space allows).
+
+**IMPORTANT INSTRUCTION:**
+- Even if the email is trivial, test, or contains no explicit actionable information, do NOT write "No action is needed" or skip the email.
+- Always frame the replyMessage as if the sender has sent you something worth acknowledging.
+- Example: "James sent you a test email regarding XYZ. Here’s a quick summary and what to do next..."
+
+replyMessage CONTENT RULES:
+- INCLUDE ALL actionable details EXACTLY as shown in the email (URLs, commands, dates, reference IDs).
+- If the email contains instructions, preserve them accurately.
+- Do NOT invent steps, links, or commands.
+- If urgency exists, reflect it clearly.
+- Do NOT mention scores, filters, or AI analysis.
 
 STYLE & VOICE (CRITICAL):
-- Write like a smart, confident personal assistant (similar to Jarvis from Iron Man).
-- Be concise, direct, and helpful — no fluff or filler.
-- Use short, punchy sentences.
-- Sound proactive and slightly engaging, but professional.
-- Avoid phrases like "this email contains information" or "the email mentions".
-- Prefer active voice.
-- Emphasize urgency or relevance if present.
-- Do NOT over-explain.
-- Example: Hello! Security alert — there was a new sign-in to your account from an unfamiliar device. Review the activity now at https://accounts.example.com/security
- and reset your password if this wasn’t you.
-- Example: Hello! You have a job offer from the Republic of Singapore Air Force (RSAF). The Singapore Armed Forces (SAF) invites you for the Air Force Pilot role. This offers the chance to operate advanced aircraft and serve the nation.
+- Write like a smart, confident personal assistant (Jarvis-style).
+- Be concise, direct, and structured.
+- No fluff, no filler.
+- Prefer short sentences.
+- Use calm urgency when appropriate.
+- Avoid phrases like "this email says" or "the email mentions".
+- Use active voice.
+
+GOOD EXAMPLE (FORMAT ONLY):
+
+⚠️ Action Required (Ngrok): Secure Your Ngrok Endpoint
+
+Your Ngrok app is currently exposed without authentication.
+This could allow unintended access.
+
+How to fix:
+1️⃣ Add OAuth using ngrok Traffic Policy
+2️⃣ Restart your endpoint with the policy attached
+
+🔗 Setup Guide:
+https://d2v8tf04.na1.hubspotlinks.com/...
 
 FAILURE CONDITIONS:
 - If markdown formatting is used, the output is INVALID.
 - If the JSON cannot be parsed, the output is INVALID.
 - If any URL is broken across lines, the output is INVALID.
 
-Filters:
-- Watch tags to prioritize: ${filter.watch_tags.join(", ")}
-- Tags to ignore: ${filter.ignore_tags.join(", ")}
-- First-time sender alerts enabled: ${filter.enable_first_time_sender_alert}
-- Thread reply alerts enabled: ${filter.enable_thread_reply_alert}
+Filters (for prioritization context only, do NOT mention explicitly):
+- Watch tags: ${filter.watch_tags.join(", ")}
+- Ignore tags: ${filter.ignore_tags.join(", ")}
 - Deadline detection enabled: ${filter.enable_deadline_alert}
 - Subscription & recurring payments alerts enabled: ${filter.enable_subscription_payment_alert}
-- Notification mode: ${filter.notification_mode}
+
+Email Sender:
+${params.emailSender}
 
 Email subject:
 ${params.emailSubject}
