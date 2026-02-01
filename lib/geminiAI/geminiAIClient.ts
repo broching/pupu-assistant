@@ -55,7 +55,6 @@ export class GeminiAI {
     async generateJSON<T>(prompt: string): Promise<EmailAnalysisResult> {
         const result = await this.jsonModel.generateContent(prompt);
         const text = result.response.text().trim();
-        console.log('res', result.response.usageMetadata)
         const jsonText = reconstructJson(text);
         const parsedText = JSON.parse(jsonText)
         const returnObj = {

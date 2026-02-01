@@ -137,7 +137,8 @@ async function handleTelegramAction(params: {
   const action = parts[0];
   const gmailMessageId = parts[1];
   const dateValue = parts[2]; // for remind_set (YYYY-MM-DD) or remind_quick (1d, 3d)
-
+  const datelineDate = parts[3];
+  console.log("log parts:", parts, "params:", params)
   switch (action) {
     case "reply_manual":
       return handleManualReply(gmailMessageId, params.chatId);
@@ -146,7 +147,7 @@ async function handleTelegramAction(params: {
       return handleAIReply(gmailMessageId, params.chatId);
 
     case "remind_me":
-      return handleRemindMe(gmailMessageId, params.chatId);
+      return handleRemindMe(gmailMessageId, params.chatId, datelineDate);
 
     case "remind_set":
       return handleRemindSet(params.chatId, gmailMessageId, dateValue ?? "");
@@ -203,19 +204,21 @@ async function handleAIReply(messageId: string, chatId: number) {
 // ==================================================
 // ⏰ Remind Me
 // ==================================================
-async function handleRemindMe(messageId: string, chatId: number) {
-  const aiSuggestedDates = [
-    { label: "Feb 15", value: "2026-02-15" },
-    { label: "Feb 18", value: "2026-02-18" },
-    { label: "Feb 19", value: "2026-02-19" },
-  ];
+async function handleRemindMe(messageId: string, chatId: number, datelineDate: string) {
+  const suggestedDates = generateSuggestedDates(datelineDate);
+  console.log("suggestedDates:", suggestedDates)
+  const aiSuggestedDates = suggestedDates.map((date) => ({
+    label: formatDateForButton(date),
+    value: date,
+  }));
+  
 
   await fetch(`${TELEGRAM_API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       chat_id: chatId,
-      text: "⏰ When should I remind you?\n----------------------------------✨AI suggested----------------------------------",
+      text: "⏰ When should I remind you? ✨AI suggested",
       parse_mode: "Markdown",
       reply_markup: {
         inline_keyboard: [
@@ -381,11 +384,11 @@ async function handleRemindCustom(gmailMessageId: string, chatId: number) {
     { onConflict: "chat_id" }
   );
 
-  const calendarRows = buildCalendarDays(14, gmailMessageId);
+  const calendarRows = buildCalendarDays(15, gmailMessageId);
 
   await sendTelegramToChat(
     chatId,
-    "When would you like me to remind you?\n\nYou can type a date like *Feb 19*, *Feb 19 at 3pm*, or *2026-02-19 10:30* — or pick a day below (default: 8am SGT):",
+    "⏰ When should I remind you?\n\nYou can type it naturally:\n• Feb 19\n• Feb 19 at 3pm\n• 2026-02-19 10:30\n• tommorow or tmr\n\nOr simply choose a date below.\nIf you don’t specify a time, I’ll remind you at 8:00am (SG time).",
     "Markdown",
     {
       reply_markup: {
@@ -435,6 +438,13 @@ function parseUserDate(input: string): { date: string; time?: string } | null {
   const lower = trimmed.toLowerCase();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  
+    // ─────────────── Handle tomorrow / tmr ───────────────
+    if (trimmed === "tomorrow" || trimmed === "tmr") {
+      const d = new Date(today);
+      d.setDate(d.getDate() + 2);
+      return { date: d.toISOString().slice(0, 10) };
+    }
 
   // Check for time component (e.g. "at 3pm", "10:30", "3:00pm")
   const timePatterns = [
@@ -561,19 +571,107 @@ function buildCalendarDays(
   messageId: string
 ): { text: string; callback_data: string }[][] {
   const rows: { text: string; callback_data: string }[][] = [];
+
+  // Start from tomorrow
   const start = new Date();
   start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() + 2);
+
+  // Always 3 rows
+  const rowsCount = 3;
+  const buttonsPerRow = Math.ceil(daysCount / rowsCount);
 
   for (let i = 0; i < daysCount; i++) {
     const d = new Date(start);
     d.setDate(d.getDate() + i);
+
     const dateStr = d.toISOString().slice(0, 10);
     const label = formatFriendlyDate(dateStr);
-    const btn = { text: label, callback_data: `custom_date:${messageId}:${dateStr}` };
-    const rowIndex = Math.floor(i / 7);
+
+    const btn = {
+      text: label,
+      callback_data: `custom_date:${messageId}:${dateStr}`,
+    };
+
+    const rowIndex = Math.floor(i / buttonsPerRow);
     if (!rows[rowIndex]) rows[rowIndex] = [];
     rows[rowIndex].push(btn);
   }
 
-  return rows;
+  return rows.slice(0, 3);
+}
+
+
+function generateSuggestedDates(datelineDate: string): string[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const results: Date[] = [];
+
+  // Always include tomorrow
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  results.push(tomorrow);
+
+  const base = new Date(datelineDate + "T00:00:00Z");
+
+  // ─────────────────────────────────────────────
+  // Primary: dates BEFORE dateline (within 1 week)
+  // ─────────────────────────────────────────────
+  if (!isNaN(base.getTime())) {
+    const offsets = [3, 5, 7];
+
+    for (const daysBefore of offsets) {
+      const d = new Date(base);
+      d.setDate(d.getDate() - daysBefore);
+
+      if (d > today) {
+        results.push(d);
+      }
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // Fallback: fill with +2 day gaps
+  // ─────────────────────────────────────────────
+  let gap = 3;
+  while (results.length < 3) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + gap);
+    results.push(d);
+    gap += 2;
+  }
+
+  // ─────────────────────────────────────────────
+  // Normalize: unique, sort, limit to 3
+  // ─────────────────────────────────────────────
+  return Array.from(
+    new Map(results.map(d => [d.toISOString().slice(0, 10), d])).values()
+  )
+    .sort((a, b) => a.getTime() - b.getTime())
+    .slice(0, 3)
+    .map(d => d.toISOString().slice(0, 10));
+}
+
+
+
+function formatDateForButton(dateISO: string): string {
+  const d = new Date(dateISO + "T12:00:00Z");
+  if (isNaN(d.getTime())) return dateISO;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round(
+    (d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+
+  const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+  return `${months[d.getUTCMonth()]} ${d.getUTCDate()}`;
 }

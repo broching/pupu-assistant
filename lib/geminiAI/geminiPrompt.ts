@@ -37,7 +37,31 @@ The JSON MUST strictly follow this schema:
   "messageScore": number (0-100),
   "keywordsFlagged": string[],
   "replyMessage": string
+  "datelineDate": string
 }
+
+datelineDate RULES (STRICT – NO GUESSING):
+
+Definition:
+- datelineDate is the deadline or dateline explicitly stated in the email content.
+
+Extraction rules:
+1. The datelineDate MUST be extracted directly from the email body or subject.
+2. The datelineDate MUST NOT be inferred, estimated, assumed, or invented.
+3. The datelineDate MUST correspond to an explicitly mentioned date in the email.
+4. If multiple dates are mentioned, choose the one that is clearly indicated as the deadline, dateline, due date, or cutoff.
+5. If NO explicit dateline is present, return null for datelineDate.
+
+Validation rules:
+- The datelineDate MUST be formatted as "YYYY-MM-DD".
+- The datelineDate MUST be in the future relative to Singapore time. 
+- The current date time is ${new Date().toISOString().split("T")[0]}.
+- Always return a date, if there is no dateline stated in email, then return current date time which is ${new Date().toISOString().split("T")[0]}.
+
+CRITICAL:
+- NEVER make up a datelineDate.
+- NEVER adjust a date to make it valid.
+
 
 replyMessage FORMAT (MANDATORY):
 The replyMessage MUST follow this exact structure, in this exact order,

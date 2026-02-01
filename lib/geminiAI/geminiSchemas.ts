@@ -3,6 +3,7 @@ export type EmailAnalysisResult = {
         messageScore: number;
         keywordsFlagged: string[];
         replyMessage: string;
+        datelineDate: string;
     },
     usageTokens: any
 

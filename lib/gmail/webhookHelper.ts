@@ -217,6 +217,7 @@ export async function processHistories(
                     const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
                     const replyUserMessage =
                         `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
+                    const datelineDate = analysis.emailAnalysis.datelineDate;
 
                     await sendTelegramMessage(
                         userTokens.user_id,
@@ -225,7 +226,7 @@ export async function processHistories(
                             reply_markup: {
                                 inline_keyboard: [
                                     [
-                                        { text: "🚨Remind Me", callback_data: `remind_me:${msg.id}` },
+                                        { text: "🚨Remind Me", callback_data: `remind_me:${msg.id}:dateline:${datelineDate}` },
                                     ],
                                 ],
                             },
