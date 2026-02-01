@@ -1,9 +1,16 @@
 // lib/telegram/sendTelegramMessage.ts
 import { createClient } from "@/lib/supabase/server";
 
+type TelegramSendOptions = {
+  reply_markup?: any;
+  parse_mode?: "HTML" | "Markdown";
+  disable_web_page_preview?: boolean;
+};
+
 export async function sendTelegramMessage(
   userId: string,
-  message: string
+  message: string,
+  options?: TelegramSendOptions
 ) {
   try {
     const supabase = await createClient({ useServiceRole: true });
@@ -22,17 +29,22 @@ export async function sendTelegramMessage(
 
     const chatId = data.telegram_chat_id;
 
-    // 2️⃣ Send message via Telegram API
+    // 2️⃣ Build Telegram payload
+    const payload = {
+      chat_id: chatId,
+      text: message,
+      parse_mode: options?.parse_mode ?? "HTML",
+      disable_web_page_preview: options?.disable_web_page_preview ?? true,
+      ...(options?.reply_markup && { reply_markup: options.reply_markup }),
+    };
+
+    // 3️⃣ Send message via Telegram API
     const telegramRes = await fetch(
       `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: "HTML", // optional
-        }),
+        body: JSON.stringify(payload),
       }
     );
 
@@ -45,7 +57,7 @@ export async function sendTelegramMessage(
 
     console.log("Telegram message sent to user:", userId);
 
-    return { success: true };
+    return { success: true, message_id: telegramData.result?.message_id };
   } catch (err) {
     console.error("sendTelegramMessage error:", err);
     return { success: false, error: err };

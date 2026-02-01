@@ -155,7 +155,7 @@ export async function processHistories(
                     (filter.enable_subscription_payment_alert && signals.isSubscription);
 
                 // ==================================================
-                // STEP 3: AI analysis (always required for DB + scoring)
+                // STEP 3: AI analysis
                 // ==================================================
                 const analysis = await analyzeEmailWithAI({
                     sender: email.from,
@@ -165,6 +165,7 @@ export async function processHistories(
                 });
 
                 const score = analysis.emailAnalysis.messageScore;
+                console.log("score for email:", score)
                 const mode = filter.notification_mode ?? "balanced";
 
                 const scorePass =
@@ -183,7 +184,7 @@ export async function processHistories(
                 // ==================================================
                 // STEP 4: Insert into DB (authoritative dedupe)
                 // ==================================================
-                const { data, error } = await supabase
+                const { data } = await supabase
                     .from("email_ai_responses")
                     .insert(
                         {
@@ -210,14 +211,26 @@ export async function processHistories(
                 }
 
                 // ==================================================
-                // STEP 5: Telegram send (LAST STEP)
+                // STEP 5: Telegram send + ACTIONS
                 // ==================================================
                 if (shouldSendTelegram) {
                     const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
                     const replyUserMessage =
                         `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
 
-                    await sendTelegramMessage(userTokens.user_id, replyUserMessage);
+                    await sendTelegramMessage(
+                        userTokens.user_id,
+                        replyUserMessage,
+                        {
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        { text: "🚨Remind Me", callback_data: `remind_me:${msg.id}` },
+                                    ],
+                                ],
+                            },
+                        }
+                    );
 
                     console.log(
                         `✅ Sent Telegram for message ${msg.id} (override=${booleanOverride}, score=${score})`
@@ -277,7 +290,7 @@ export async function ensureValidWatch({
         const res = await gmail.users.watch({
             userId: "me",
             requestBody: {
-                topicName: process.env.GMAIL_PUBSUB_TOPIC!,
+                topicName: process.env.GOOGLE_PUBSUB_TOPIC!,
                 labelIds: ["INBOX"],
             },
         });

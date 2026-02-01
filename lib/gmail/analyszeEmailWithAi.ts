@@ -16,7 +16,6 @@ export async function analyzeEmailWithAI(params: {
         emailBody: params.body,
         filter: params.filter,
     });
-    console.log('test prompt:', prompt)
 
     const res = ai.generateJSON<EmailAnalysisResult>(prompt);
     return res;
