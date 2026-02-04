@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { useUser } from "@/app/context/userContext";
 import type { PlanName } from "@/lib/subscription/types";
 import { useSubscription } from "@/lib/subscription/client";
+import PricingQnA from "@/components/qna/PricingQnA";
 
 const PLANS = [
   {
@@ -78,7 +79,7 @@ function TrialCountdown({ trialEnd }: { trialEnd: string }) {
       const h = Math.floor(
         ((end.getTime() - now.getTime()) %
           (1000 * 60 * 60 * 24)) /
-          (1000 * 60 * 60)
+        (1000 * 60 * 60)
       );
       setLeft(`${d}d ${h}h left`);
     };
@@ -114,7 +115,7 @@ export default function PricingPage() {
   }, [searchParams]);
 
   /* ----------------------------------------
-     Subscription state logic (FIXED)
+     Subscription state logic (CORRECT)
   ---------------------------------------- */
 
   const hasEverPaid =
@@ -123,22 +124,23 @@ export default function PricingPage() {
   const isCanceledAndExpired =
     subscription?.status === "canceled" && !subscription?.hasAccess;
 
-  /**
-   * IMPORTANT:
-   * - We NEVER fall back to free_trial automatically
-   * - If access is gone, effectivePlan is null
-   */
-  const effectivePlan: PlanName | null = subscription?.hasAccess
-    ? subscription.planName
-    : null;
+  const effectivePlan: PlanName | null =
+    subscription?.hasAccess ? subscription.planName : null;
 
   const currentIndex =
     effectivePlan !== null ? PLAN_ORDER.indexOf(effectivePlan) : -1;
 
   const isCurrentPlan = (id: PlanName) => effectivePlan === id;
 
+  /**
+   * CRITICAL FIX:
+   * Trial can only be "used" if the user is logged in
+   */
   const trialAlreadyUsed =
-    subscription?.planName !== "free_trial" || subscription?.status === "canceled";
+    !!user &&
+    !!subscription &&
+    (subscription.planName !== "free_trial" ||
+      subscription.status === "canceled");
 
   /* ----------------------------------------
      Stripe actions
@@ -198,13 +200,13 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="container py-10 flex justify-center">
-      <div className="w-full max-w-6xl">
+    <div className="w-full flex justify-center" style={{ maxWidth: "100rem" }} >
+      <div className="w-full mt-10">
         {/* =============================
            HEADER
         ============================== */}
         <div className="mb-10 text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Pricing</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Pricing</h1>
 
           {!hasEverPaid && (
             <p className="mt-2 text-muted-foreground">
@@ -273,8 +275,8 @@ export default function PricingPage() {
                     isCurrentPlan(plan.id)
                       ? "border-primary shadow-md"
                       : plan.id === "free_trial" && trialAlreadyUsed
-                      ? "opacity-60"
-                      : ""
+                        ? "opacity-60"
+                        : ""
                   }
                 >
                   <CardHeader className="pb-2">
@@ -364,7 +366,13 @@ export default function PricingPage() {
             })}
           </div>
         </div>
+        <div className="gap mt-5">
+
+        </div>
+        <PricingQnA />
       </div>
     </div>
   );
 }
+
+
