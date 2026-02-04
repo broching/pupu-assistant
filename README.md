@@ -46,6 +46,7 @@ Key goals:
 - Gmail push notifications (no polling)
 - Telegram notifications
 - Clean onboarding UI with collapsible steps
+- **Subscriptions & billing**: Stripe Subscriptions, 14-day free trial, Starter / Plus / Professional tiers, pricing page, customer portal, webhooks
 
 ### Planned / In Progress
 - AI email classification & summaries
@@ -76,6 +77,10 @@ Key goals:
 - Supabase (Auth, Database, RLS)
 - JWT-based sessions
 
+### Billing
+- Stripe Subscriptions (Checkout, Customer Portal, Webhooks)
+- `subscriptions` table in Supabase; RLS enabled
+
 ### Notifications
 - Telegram Bot API
 - Extensible to WhatsApp, Slack, SMS, etc.
@@ -88,6 +93,16 @@ Key goals:
 - Designed for multi-user, multi-account scalability
 - Clear separation between frontend UI and backend API logic
 - Emphasis on least-privilege access and safe defaults
+
+---
+
+## 💳 Subscriptions & Stripe
+
+- **Tiers**: Free Trial (14 days), Starter ($1.99/mo), Plus ($4.99/mo), Professional ($9.99/mo).
+- **Free trial**: Starts on signup; stored in `subscriptions` with `trial_end`. No Stripe subscription for trial.
+- **API routes**: `POST /api/stripe/checkout`, `POST /api/stripe/portal`, `POST /api/stripe/webhook`. `GET /api/subscription` returns current plan (use `Authorization: Bearer <access_token>`).
+- **Access control**: `getSubscription(userId)` and `canAccessPlan(userId, plan)` server-side; `useSubscription()` and `<SubscriptionGuard requiredPlan="plus">` client-side.
+- **Env vars**: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_STARTER`, `STRIPE_PRICE_PLUS`, `STRIPE_PRICE_PROFESSIONAL`. Webhook URL: `https://your-domain.com/api/stripe/webhook`; events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`.
 
 ---
 

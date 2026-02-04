@@ -80,7 +80,6 @@ export async function POST(req: NextRequest) {
         } else {
             console.log("✅ Loaded filter", filter.filter_name);
         }
-        console.log('histories:', histories)
 
         // 8️⃣ Process histories with the filters
         await processHistories(supabase, gmail, histories, userTokens, filter);

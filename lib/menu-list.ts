@@ -9,7 +9,8 @@ import {
   User,
   FilterIcon,
   BluetoothConnectedIcon,
-  Settings2
+  Settings2,
+  Receipt
 } from "lucide-react";
 
 type Submenu = {
@@ -81,6 +82,11 @@ export function getMenuList(pathname: string): Group[] {
           href: "/account",
           label: "Account",
           icon: Settings
+        },
+        {
+          href: "/billing",
+          label: "Billing",
+          icon: Receipt
         }
       ]
     }

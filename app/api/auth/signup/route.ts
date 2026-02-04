@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // 3️⃣ Insert into users table
+    // 3️⃣ Insert into users table and start 14-day free trial
     if (data.user) {
       const { error: dbError } = await supabase.from("users").insert({
         id: data.user.id,
@@ -65,6 +65,20 @@ export async function POST(req: Request) {
           { error: "Signup succeeded, but failed to create user record" },
           { status: 500 }
         );
+      }
+
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 14);
+      const { error: subError } = await supabase.from("subscriptions").insert({
+        user_id: data.user.id,
+        plan_name: "free_trial",
+        status: "trialing",
+        trial_end: trialEnd.toISOString(),
+      });
+
+      if (subError) {
+        console.error("Error inserting subscription trial:", subError);
+        // Don't fail signup; trial can be fixed later
       }
     }
 

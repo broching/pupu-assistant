@@ -1,14 +1,10 @@
-// app/api/gmail/webhook/route.ts
-import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { createClient } from "@/lib/supabase/server";
 import { parseGmailMessage } from "@/lib/gmail/parseGmail";
-import { formatEmailMessage } from "@/lib/telegram/formatTelegramMessage";
 import { sendTelegramMessage } from "@/lib/telegram/sendTelegramMessage";
-import { analyzeEmailWithAI } from "./analyszeEmailWithAi";
-import { FilterConfig } from "../geminiAI/geminiSchemas";
+import { analyzeEmailWithAI } from "./analyzeEmailWithAi";
 
-export async function getUserTokens(supabase: any, emailAddress: string) {
+export async function getUserTokens(supabase: Awaited<ReturnType<typeof createClient>>, emailAddress: string) {
     const { data, error } = await supabase
         .from("user_gmail_tokens")
         .select("*")
@@ -165,7 +161,6 @@ export async function processHistories(
                 });
 
                 const score = analysis.emailAnalysis.messageScore;
-                console.log("score for email:", score)
                 const mode = filter.notification_mode ?? "balanced";
 
                 const scorePass =
