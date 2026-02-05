@@ -11,6 +11,7 @@ interface UserContextType {
   session: Session | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userUpdates: Partial<User>) => void;
@@ -72,6 +73,29 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     }
   };
 
+  const loginWithGoogle = async () => {
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/google/sso/callback`,
+        },
+      });
+
+      if (error) throw error;
+
+      // Do NOT redirect here.
+      // OAuth flow will leave the page and return via /auth/callback
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Google login failed";
+      toast.error(msg);
+      setIsLoading(false);
+      throw err;
+    }
+  };
+
   // Signup function
 
   // Signup function
@@ -130,7 +154,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, session, isLoading, login, signup, logout, updateUser }}>
+    <UserContext.Provider value={{ user, session, isLoading, login, signup, logout, updateUser, loginWithGoogle }}>
       {children}
     </UserContext.Provider>
   );

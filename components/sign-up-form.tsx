@@ -29,7 +29,7 @@ export function SignUpForm({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { signup } = useUser(); // ✅ use context
+  const { signup, loginWithGoogle } = useUser(); // ✅ use context
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,19 +66,10 @@ export function SignUpForm({
             <Button
               variant="outline"
               className="flex items-center justify-center gap-2 w-full border-gray-300 hover:bg-gray-400 transition-all duration-200"
-            // onClick={() => handleOAuthSignUp("google")}
+              onClick={() => loginWithGoogle()}
             >
               <FcGoogle size={20} />
               Continue with Google
-            </Button>
-
-            <Button
-              variant="outline"
-              className="flex items-center justify-center gap-2 w-full border-gray-300 hover:bg-blue-600 hover:text-white transition-all duration-200"
-            // onClick={() => handleOAuthSignUp("facebook")}
-            >
-              <FaFacebook size={18} />
-              Continue with Facebook
             </Button>
           </div>
 
