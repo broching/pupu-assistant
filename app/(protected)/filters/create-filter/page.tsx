@@ -93,143 +93,145 @@ export default function SmartNotificationRulesPage() {
     }
 
     return (
-        <div className="max-w-2xl mx-auto p-6 space-y-6">
-            <Card>
-                <CardContent className="space-y-6 p-6">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => router.back()}
-                                className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
-                                aria-label="Go back"
+        <ContentLayout title="Filter">
+            <div className="max-w-2xl mx-auto p-6 space-y-6">
+                <Card>
+                    <CardContent className="space-y-6 p-6">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => router.back()}
+                                    className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
+                                    aria-label="Go back"
+                                >
+                                    <ArrowLeft className="h-5 w-5" />
+                                </button>
+
+                                <h1 className="text-xl font-semibold">
+                                    Smart Notification Filter
+                                </h1>
+                            </div>
+
+                            <p className="text-sm text-muted-foreground">
+                                Control which emails are important enough for the AI to notify you about.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Name (required) */}
+                            <div className="space-y-2">
+                                <Label>
+                                    Filter Name <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    placeholder="e.g. Work Emails, Billing Alerts"
+                                    value={name}
+                                    required
+                                    onChange={e => setName(e.target.value)}
+                                />
+                            </div>
+
+                            {/* Notification Mode */}
+                            <div className="space-y-2">
+                                <Label>Notification Frequency</Label>
+                                <Select value={notificationMode} onValueChange={setNotificationMode}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select mode" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="minimal">
+                                            Minimal (only critical emails)
+                                        </SelectItem>
+                                        <SelectItem value="balanced">
+                                            Balanced (recommended)
+                                        </SelectItem>
+                                        <SelectItem value="aggressive">
+                                            Aggressive (notify more often)
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Watch Tags */}
+                            <div className="space-y-2">
+                                <Label>Important Keywords</Label>
+                                <TagInput
+                                    placeholder="Type a keyword and press Enter"
+                                    tags={watchTags}
+                                    value={watchInput}
+                                    onValueChange={setWatchInput}
+                                    onAddTag={tag => setWatchTags([...watchTags, tag])}
+                                    onRemoveTag={tag =>
+                                        setWatchTags(watchTags.filter(t => t !== tag))
+                                    }
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Emails containing these keywords are more likely to trigger notifications.
+                                </p>
+                            </div>
+
+                            {/* Ignore Tags */}
+                            <div className="space-y-2">
+                                <Label>Ignored Keywords</Label>
+                                <TagInput
+                                    placeholder="Type a keyword and press Enter"
+                                    tags={ignoreTags}
+                                    value={ignoreInput}
+                                    onValueChange={setIgnoreInput}
+                                    onAddTag={tag => setIgnoreTags([...ignoreTags, tag])}
+                                    onRemoveTag={tag =>
+                                        setIgnoreTags(ignoreTags.filter(t => t !== tag))
+                                    }
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Emails containing these keywords are less likely to notify you.
+                                </p>
+                            </div>
+
+                            {/* Toggles */}
+                            <div className="space-y-4">
+                                <ToggleRow
+                                    label="First-time sender alerts"
+                                    description="Notify me when someone emails me for the first time"
+                                    checked={firstTimeSender}
+                                    onChange={setFirstTimeSender}
+                                />
+
+                                <ToggleRow
+                                    label="Thread reply alerts"
+                                    description="Notify me when someone replies to an existing conversation"
+                                    checked={threadReply}
+                                    onChange={setThreadReply}
+                                />
+
+                                <ToggleRow
+                                    label="Deadline detection"
+                                    description="Notify me when emails mention deadlines or due dates"
+                                    checked={deadlineAlert}
+                                    onChange={setDeadlineAlert}
+                                />
+
+                                <ToggleRow
+                                    label="Subscriptions & recurring payments"
+                                    description="Notify me about subscription charges, renewals, or ongoing payments"
+                                    checked={subscriptionAlert}
+                                    onChange={setSubscriptionAlert}
+                                />
+                            </div>
+
+                            <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={loading}
                             >
-                                <ArrowLeft className="h-5 w-5" />
-                            </button>
-
-                            <h1 className="text-xl font-semibold">
-                                Smart Notification Filter
-                            </h1>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground">
-                            Control which emails are important enough for the AI to notify you about.
-                        </p>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Name (required) */}
-                        <div className="space-y-2">
-                            <Label>
-                                Filter Name <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                placeholder="e.g. Work Emails, Billing Alerts"
-                                value={name}
-                                required
-                                onChange={e => setName(e.target.value)}
-                            />
-                        </div>
-
-                        {/* Notification Mode */}
-                        <div className="space-y-2">
-                            <Label>Notification Frequency</Label>
-                            <Select value={notificationMode} onValueChange={setNotificationMode}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select mode" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="minimal">
-                                        Minimal (only critical emails)
-                                    </SelectItem>
-                                    <SelectItem value="balanced">
-                                        Balanced (recommended)
-                                    </SelectItem>
-                                    <SelectItem value="aggressive">
-                                        Aggressive (notify more often)
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Watch Tags */}
-                        <div className="space-y-2">
-                            <Label>Important Keywords</Label>
-                            <TagInput
-                                placeholder="Type a keyword and press Enter"
-                                tags={watchTags}
-                                value={watchInput}
-                                onValueChange={setWatchInput}
-                                onAddTag={tag => setWatchTags([...watchTags, tag])}
-                                onRemoveTag={tag =>
-                                    setWatchTags(watchTags.filter(t => t !== tag))
-                                }
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Emails containing these keywords are more likely to trigger notifications.
-                            </p>
-                        </div>
-
-                        {/* Ignore Tags */}
-                        <div className="space-y-2">
-                            <Label>Ignored Keywords</Label>
-                            <TagInput
-                                placeholder="Type a keyword and press Enter"
-                                tags={ignoreTags}
-                                value={ignoreInput}
-                                onValueChange={setIgnoreInput}
-                                onAddTag={tag => setIgnoreTags([...ignoreTags, tag])}
-                                onRemoveTag={tag =>
-                                    setIgnoreTags(ignoreTags.filter(t => t !== tag))
-                                }
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Emails containing these keywords are less likely to notify you.
-                            </p>
-                        </div>
-
-                        {/* Toggles */}
-                        <div className="space-y-4">
-                            <ToggleRow
-                                label="First-time sender alerts"
-                                description="Notify me when someone emails me for the first time"
-                                checked={firstTimeSender}
-                                onChange={setFirstTimeSender}
-                            />
-
-                            <ToggleRow
-                                label="Thread reply alerts"
-                                description="Notify me when someone replies to an existing conversation"
-                                checked={threadReply}
-                                onChange={setThreadReply}
-                            />
-
-                            <ToggleRow
-                                label="Deadline detection"
-                                description="Notify me when emails mention deadlines or due dates"
-                                checked={deadlineAlert}
-                                onChange={setDeadlineAlert}
-                            />
-
-                            <ToggleRow
-                                label="Subscriptions & recurring payments"
-                                description="Notify me about subscription charges, renewals, or ongoing payments"
-                                checked={subscriptionAlert}
-                                onChange={setSubscriptionAlert}
-                            />
-                        </div>
-
-                        <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={loading}
-                        >
-                            Save Filter
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
+                                Save Filter
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        </ContentLayout>
     );
 }
 
@@ -253,40 +255,39 @@ function TagInput({
     onRemoveTag: (tag: string) => void;
 }) {
     return (
-        <ContentLayout title="Filters">
-            <div className="space-y-2">
-                <div className="flex flex-wrap gap-2">
-                    {tags.map(tag => (
-                        <span
-                            key={tag}
-                            className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs"
+        <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+                {tags.map(tag => (
+                    <span
+                        key={tag}
+                        className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs"
+                    >
+                        {tag}
+                        <button
+                            type="button"
+                            onClick={() => onRemoveTag(tag)}
+                            className="text-muted-foreground hover:text-foreground"
                         >
-                            {tag}
-                            <button
-                                type="button"
-                                onClick={() => onRemoveTag(tag)}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                ×
-                            </button>
-                        </span>
-                    ))}
-                </div>
-
-                <Input
-                    placeholder={placeholder}
-                    value={value}
-                    onChange={e => onValueChange(e.target.value)}
-                    onKeyDown={e => {
-                        if (e.key === "Enter" && value.trim()) {
-                            e.preventDefault();
-                            onAddTag(value.trim());
-                            onValueChange("");
-                        }
-                    }}
-                />
+                            ×
+                        </button>
+                    </span>
+                ))}
             </div>
-        </ContentLayout>
+
+            <Input
+                placeholder={placeholder}
+                value={value}
+                onChange={e => onValueChange(e.target.value)}
+                onKeyDown={e => {
+                    if (e.key === "Enter" && value.trim()) {
+                        e.preventDefault();
+                        onAddTag(value.trim());
+                        onValueChange("");
+                    }
+                }}
+            />
+        </div>
+
     );
 }
 

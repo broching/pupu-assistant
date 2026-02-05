@@ -69,7 +69,7 @@ export default function LinkTelegramCard({
 
     return (
         <div className="max-w-7xl mx-auto py-12 px-6 flex justify-center">
-            <Card className="w-full max-w-6xl">
+            <Card className="w-full max-w-6xl bg-gradient-to-br from-muted/40 to-transparent">
                 <CardHeader className="flex flex-row items-start justify-between">
                     <div className="flex items-center gap-4">
                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
