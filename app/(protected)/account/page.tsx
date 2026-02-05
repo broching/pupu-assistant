@@ -9,7 +9,7 @@ import { useUser } from '@/app/context/userContext';
 import { useBot } from '@/app/context/botContext';
 import { toast } from 'sonner';
 import { AlertCircleIcon, AlertTriangleIcon, CheckCircle2Icon, CheckIcon, PopcornIcon } from "lucide-react"
-import { useApiClient } from '../utils/axiosClient';
+import { useApiClient } from '../../utils/axiosClient';
 import ConnectCard from '@/components/settings/ConnectCard';
 import NumberPreferenceCard from '@/components/settings/numberPreferenceCard';
 

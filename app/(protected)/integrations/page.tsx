@@ -22,7 +22,7 @@ import {
     ChevronUp,
 } from "lucide-react";
 import { useUser } from "@/app/context/userContext";
-import { useApiClient } from "../utils/axiosClient";
+import { useApiClient } from "../../utils/axiosClient";
 import LinkTelegramCard from "@/components/integrations/telegramCard";
 import GmailCard from "@/components/integrations/gmailCard";
 

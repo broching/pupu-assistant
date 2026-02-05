@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useApiClient } from "../utils/axiosClient";
-import { useUser } from "../context/userContext";
+import { useApiClient } from "../../utils/axiosClient";
+import { useUser } from "../../context/userContext";
 import { Mail, Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,

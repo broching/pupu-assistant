@@ -16,7 +16,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed top-0 left-0 z-20 h-screen transition-[width] ease-in-out duration-300",
+        "fixed top-20 left-0 z-20 h-screen transition-[width] ease-in-out duration-300",
         getOpenState()
           ? "w-72 sm:w-72"        // expanded sidebar width
           : "w-[70px] sm:w-[90px]", // collapsed: mobile 70px, desktop 90px
