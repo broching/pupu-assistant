@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { redirect } from "next/dist/server/api-utils";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { ContentLayout } from "@/components/admin-panel/content-layout";
 
 /**
  * User-facing name:
@@ -252,38 +253,40 @@ function TagInput({
     onRemoveTag: (tag: string) => void;
 }) {
     return (
-        <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">
-                {tags.map(tag => (
-                    <span
-                        key={tag}
-                        className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs"
-                    >
-                        {tag}
-                        <button
-                            type="button"
-                            onClick={() => onRemoveTag(tag)}
-                            className="text-muted-foreground hover:text-foreground"
+        <ContentLayout title="Filters">
+            <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                    {tags.map(tag => (
+                        <span
+                            key={tag}
+                            className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs"
                         >
-                            ×
-                        </button>
-                    </span>
-                ))}
-            </div>
+                            {tag}
+                            <button
+                                type="button"
+                                onClick={() => onRemoveTag(tag)}
+                                className="text-muted-foreground hover:text-foreground"
+                            >
+                                ×
+                            </button>
+                        </span>
+                    ))}
+                </div>
 
-            <Input
-                placeholder={placeholder}
-                value={value}
-                onChange={e => onValueChange(e.target.value)}
-                onKeyDown={e => {
-                    if (e.key === "Enter" && value.trim()) {
-                        e.preventDefault();
-                        onAddTag(value.trim());
-                        onValueChange("");
-                    }
-                }}
-            />
-        </div>
+                <Input
+                    placeholder={placeholder}
+                    value={value}
+                    onChange={e => onValueChange(e.target.value)}
+                    onKeyDown={e => {
+                        if (e.key === "Enter" && value.trim()) {
+                            e.preventDefault();
+                            onAddTag(value.trim());
+                            onValueChange("");
+                        }
+                    }}
+                />
+            </div>
+        </ContentLayout>
     );
 }
 

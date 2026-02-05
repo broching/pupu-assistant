@@ -12,6 +12,7 @@ import { AlertCircleIcon, AlertTriangleIcon, CheckCircle2Icon, CheckIcon, Popcor
 import { useApiClient } from '../../utils/axiosClient';
 import ConnectCard from '@/components/settings/ConnectCard';
 import NumberPreferenceCard from '@/components/settings/numberPreferenceCard';
+import { ContentLayout } from '@/components/admin-panel/content-layout';
 
 
 
@@ -156,21 +157,27 @@ export default function Page() {
 
 
     return (
-        <div className="max-w-7xl gap-10 mx-auto py-12 px-6 flex flex-col md:flex-row">
-            <ConnectCard
-                userId={userId}
-                botActive={botActive}
-                handleEnableBot={handleEnableBot}
-                handleDisableBot={handleDisableBot}
-                loading={loading}
-                qr={qr}
-                connected={connected}
-                handleDisconnectBot
-            />
-            <NumberPreferenceCard
+        <ContentLayout
+            title='Account'>
+            <div className="max-w-7xl gap-10 mx-auto py-12 px-6 flex flex-col md:flex-row">
 
-            />
-        </div>
+                <ConnectCard
+                    userId={userId}
+                    botActive={botActive}
+                    handleEnableBot={handleEnableBot}
+                    handleDisableBot={handleDisableBot}
+                    loading={loading}
+                    qr={qr}
+                    connected={connected}
+                    handleDisconnectBot
+                />
+                <NumberPreferenceCard
+
+                />
+
+
+            </div>
+        </ContentLayout>
     );
 
 }

@@ -25,6 +25,7 @@ import { useUser } from "@/app/context/userContext";
 import { useApiClient } from "../../utils/axiosClient";
 import LinkTelegramCard from "@/components/integrations/telegramCard";
 import GmailCard from "@/components/integrations/gmailCard";
+import { ContentLayout } from "@/components/admin-panel/content-layout";
 
 type TelegramStatus = {
     connected: boolean;
@@ -124,19 +125,21 @@ export default function LinkGmailTelegramPage() {
 
     return (
         <>
-            <LinkTelegramCard
-                loading={loading}
-                setLoading={setLoading}
-                telegramStatus={telegramStatus}
-                setTelegramStatus={setTelegramStatus}
-                error={error}
-                setError={setError}
-                collapsed={collapsed}
-                setCollapsed={setCollapsed}
-                polling={polling}
-                handleConnectTelegram={handleConnectTelegram}
-            />
-            <GmailCard />
+            <ContentLayout title="Integrations">
+                <LinkTelegramCard
+                    loading={loading}
+                    setLoading={setLoading}
+                    telegramStatus={telegramStatus}
+                    setTelegramStatus={setTelegramStatus}
+                    error={error}
+                    setError={setError}
+                    collapsed={collapsed}
+                    setCollapsed={setCollapsed}
+                    polling={polling}
+                    handleConnectTelegram={handleConnectTelegram}
+                />
+                <GmailCard />
+            </ContentLayout>
         </>
     );
 }

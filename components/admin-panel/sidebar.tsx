@@ -12,14 +12,11 @@ export function Sidebar() {
   const sidebar = useStore(useSidebar, (x) => x);
   if (!sidebar) return null;
   const { isOpen, toggleOpen, getOpenState, setIsHover, settings } = sidebar;
-
   return (
     <aside
       className={cn(
-        "fixed top-20 left-0 z-20 h-screen transition-[width] ease-in-out duration-300",
-        getOpenState()
-          ? "w-72 sm:w-72"        // expanded sidebar width
-          : "w-[70px] sm:w-[90px]", // collapsed: mobile 70px, desktop 90px
+        "fixed top-0 left-0 z-20 h-screen -translate-x-full lg:translate-x-0 transition-[width] ease-in-out duration-300",
+        !getOpenState() ? "w-[90px]" : "w-72",
         settings.disabled && "hidden"
       )}
     >
@@ -37,8 +34,8 @@ export function Sidebar() {
           variant="link"
           asChild
         >
-          <Link href="/dashboard" className="flex items-center gap-2">
-            <PanelsTopLeft className="w-6 h-6 mr-1" />
+          <Link href="/" className="flex items-center gap-2">
+            <img src="icons8-bear-40.png" alt="" />
             <h1
               className={cn(
                 "font-bold text-lg whitespace-nowrap transition-[transform,opacity,display] ease-in-out duration-300",
@@ -47,7 +44,7 @@ export function Sidebar() {
                   : "translate-x-0 opacity-100"
               )}
             >
-              Admin
+              PuPu
             </h1>
           </Link>
         </Button>

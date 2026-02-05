@@ -5,7 +5,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasEnvVars } from "@/lib/utils";
 import Link from "next/link";
 import AdminPanelLayout from "@/components/admin-panel/admin-panel-layout";
-import ProtectedHeader from "@/components/ProtectedHeader";
+
 
 export default function ProtectedLayout({
   children,
@@ -13,18 +13,8 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen flex flex-col items-center">
-      <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-
-          <AdminPanelLayout
-            header={<ProtectedHeader />}
-          >
-            {children}
-          </AdminPanelLayout>
-
-        </div>
-      </div >
-    </main >
+    <AdminPanelLayout>
+      {children}
+    </AdminPanelLayout>
   );
 }

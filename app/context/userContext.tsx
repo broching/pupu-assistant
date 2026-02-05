@@ -62,7 +62,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       setUser(data.user);
       setSession(data.session);
       toast.success("Welcome Back!", { description: "You Have Been Logged In!" });
-      router.push("/protected");
+      router.push("/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Login failed";
       toast.error(msg);

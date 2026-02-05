@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { useUser } from "@/app/context/userContext";
+import { ContentLayout } from "@/components/admin-panel/content-layout";
 
 export default function EditNotificationFilterPage() {
     const router = useRouter();
@@ -112,140 +113,142 @@ export default function EditNotificationFilterPage() {
     }
 
     return (
-        <div className="max-w-2xl mx-auto p-6 space-y-6">
-            <Card>
-                <CardContent className="space-y-6 p-6">
-                    {/* Header */}
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => router.back()}
-                                className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
-                                aria-label="Go back"
+        <ContentLayout title="Filters">
+            <div className="max-w-2xl mx-auto p-6 space-y-6">
+                <Card>
+                    <CardContent className="space-y-6 p-6">
+                        {/* Header */}
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => router.back()}
+                                    className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
+                                    aria-label="Go back"
+                                >
+                                    <ArrowLeft className="h-5 w-5" />
+                                </button>
+
+                                <h1 className="text-xl font-semibold">
+                                    Edit Notification Filter
+                                </h1>
+                            </div>
+
+                            <p className="text-sm text-muted-foreground">
+                                Update how the AI decides which emails are important.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Name */}
+                            <div className="space-y-2">
+                                <Label>
+                                    Filter Name <span className="text-destructive">*</span>
+                                </Label>
+                                <Input
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            {/* Notification Mode */}
+                            <div className="space-y-2">
+                                <Label>Notification Frequency</Label>
+                                <Select
+                                    value={notificationMode}
+                                    onValueChange={setNotificationMode}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="minimal">
+                                            Minimal (only critical emails)
+                                        </SelectItem>
+                                        <SelectItem value="balanced">
+                                            Balanced (recommended)
+                                        </SelectItem>
+                                        <SelectItem value="aggressive">
+                                            Aggressive (notify more often)
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Watch Tags */}
+                            <div className="space-y-2">
+                                <Label>Important Keywords</Label>
+                                <TagInput
+                                    placeholder="Type a keyword and press Enter"
+                                    tags={watchTags}
+                                    value={watchInput}
+                                    onValueChange={setWatchInput}
+                                    onAddTag={tag => setWatchTags([...watchTags, tag])}
+                                    onRemoveTag={tag =>
+                                        setWatchTags(watchTags.filter(t => t !== tag))
+                                    }
+                                />
+                            </div>
+
+                            {/* Ignore Tags */}
+                            <div className="space-y-2">
+                                <Label>Ignored Keywords</Label>
+                                <TagInput
+                                    placeholder="Type a keyword and press Enter"
+                                    tags={ignoreTags}
+                                    value={ignoreInput}
+                                    onValueChange={setIgnoreInput}
+                                    onAddTag={tag => setIgnoreTags([...ignoreTags, tag])}
+                                    onRemoveTag={tag =>
+                                        setIgnoreTags(ignoreTags.filter(t => t !== tag))
+                                    }
+                                />
+                            </div>
+
+                            {/* Toggles */}
+                            <div className="space-y-4">
+                                <ToggleRow
+                                    label="First-time sender alerts"
+                                    description="Notify me when someone emails me for the first time"
+                                    checked={firstTimeSender}
+                                    onChange={setFirstTimeSender}
+                                />
+
+                                <ToggleRow
+                                    label="Thread reply alerts"
+                                    description="Notify me when someone replies"
+                                    checked={threadReply}
+                                    onChange={setThreadReply}
+                                />
+
+                                <ToggleRow
+                                    label="Deadline detection"
+                                    description="Notify me about deadlines"
+                                    checked={deadlineAlert}
+                                    onChange={setDeadlineAlert}
+                                />
+
+                                <ToggleRow
+                                    label="Subscriptions & recurring payments"
+                                    description="Notify me about recurring charges"
+                                    checked={subscriptionAlert}
+                                    onChange={setSubscriptionAlert}
+                                />
+                            </div>
+
+                            <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={loading}
                             >
-                                <ArrowLeft className="h-5 w-5" />
-                            </button>
-
-                            <h1 className="text-xl font-semibold">
-                                Edit Notification Filter
-                            </h1>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground">
-                            Update how the AI decides which emails are important.
-                        </p>
-                    </div>
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Name */}
-                        <div className="space-y-2">
-                            <Label>
-                                Filter Name <span className="text-destructive">*</span>
-                            </Label>
-                            <Input
-                                value={name}
-                                onChange={e => setName(e.target.value)}
-                                required
-                            />
-                        </div>
-
-                        {/* Notification Mode */}
-                        <div className="space-y-2">
-                            <Label>Notification Frequency</Label>
-                            <Select
-                                value={notificationMode}
-                                onValueChange={setNotificationMode}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="minimal">
-                                        Minimal (only critical emails)
-                                    </SelectItem>
-                                    <SelectItem value="balanced">
-                                        Balanced (recommended)
-                                    </SelectItem>
-                                    <SelectItem value="aggressive">
-                                        Aggressive (notify more often)
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Watch Tags */}
-                        <div className="space-y-2">
-                            <Label>Important Keywords</Label>
-                            <TagInput
-                                placeholder="Type a keyword and press Enter"
-                                tags={watchTags}
-                                value={watchInput}
-                                onValueChange={setWatchInput}
-                                onAddTag={tag => setWatchTags([...watchTags, tag])}
-                                onRemoveTag={tag =>
-                                    setWatchTags(watchTags.filter(t => t !== tag))
-                                }
-                            />
-                        </div>
-
-                        {/* Ignore Tags */}
-                        <div className="space-y-2">
-                            <Label>Ignored Keywords</Label>
-                            <TagInput
-                                placeholder="Type a keyword and press Enter"
-                                tags={ignoreTags}
-                                value={ignoreInput}
-                                onValueChange={setIgnoreInput}
-                                onAddTag={tag => setIgnoreTags([...ignoreTags, tag])}
-                                onRemoveTag={tag =>
-                                    setIgnoreTags(ignoreTags.filter(t => t !== tag))
-                                }
-                            />
-                        </div>
-
-                        {/* Toggles */}
-                        <div className="space-y-4">
-                            <ToggleRow
-                                label="First-time sender alerts"
-                                description="Notify me when someone emails me for the first time"
-                                checked={firstTimeSender}
-                                onChange={setFirstTimeSender}
-                            />
-
-                            <ToggleRow
-                                label="Thread reply alerts"
-                                description="Notify me when someone replies"
-                                checked={threadReply}
-                                onChange={setThreadReply}
-                            />
-
-                            <ToggleRow
-                                label="Deadline detection"
-                                description="Notify me about deadlines"
-                                checked={deadlineAlert}
-                                onChange={setDeadlineAlert}
-                            />
-
-                            <ToggleRow
-                                label="Subscriptions & recurring payments"
-                                description="Notify me about recurring charges"
-                                checked={subscriptionAlert}
-                                onChange={setSubscriptionAlert}
-                            />
-                        </div>
-
-                        <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={loading}
-                        >
-                            Update Filter
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
+                                Update Filter
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        </ContentLayout>
     );
 }
 
@@ -302,6 +305,7 @@ function TagInput({
             />
 
         </div>
+
     );
 }
 

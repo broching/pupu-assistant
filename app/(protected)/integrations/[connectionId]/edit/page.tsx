@@ -12,6 +12,7 @@ import { useApiClient } from "@/app/utils/axiosClient";
 import { ArrowLeft } from "lucide-react";
 import { useUser } from "@/app/context/userContext";
 import { Switch } from "@/components/ui/switch";
+import { ContentLayout } from "@/components/admin-panel/content-layout";
 
 type Filter = {
     id: string;
@@ -183,182 +184,184 @@ export default function EditIntegrationPage() {
     if (initialLoading) return <p className="text-center mt-10">Loading...</p>;
 
     return (
-        <div className="max-w-5xl mx-auto p-8 space-y-6">
-            <Card className="p-8">
-                <CardContent className="space-y-6">
-                    {/* Header */}
-                    <div className="space-y-1 mt-5">
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => router.back()}
-                                className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
-                                aria-label="Go back"
-                            >
-                                <ArrowLeft className="h-5 w-5" />
-                            </button>
-
-                            <h1 className="text-2xl font-semibold">Edit Gmail Integration</h1>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground">
-                            Update the connection details for your Gmail account.
-                        </p>
-                    </div>
-
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            handleSave();
-                        }}
-                        className="space-y-6"
-                    >
-                        {/* Email (read-only) */}
-                        <div className="space-y-2">
-                            <Label>Email Address</Label>
-                            <Input value={emailAddress} disabled />
-                        </div>
-
-                        {/* Connection Name */}
-                        <div className="space-y-2">
-                            <Label>Connection Name</Label>
-                            <Input
-                                placeholder="Work Gmail, Personal, etc."
-                                value={connectionName}
-                                onChange={(e) => setConnectionName(e.target.value)}
-                                required
-                            />
-                        </div>
-
-                        {/* Filter Select */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
-                            {/* Left: Filter dropdown */}
-                            <div className="md:col-span-2 space-y-2">
-                                <Label>Filter</Label>
-                                <Select
-                                    value={filterId}
-                                    onValueChange={async (val) => {
-                                        setFilterId(val);
-                                        await fetchFilter(val);
-                                    }}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a filter" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="default">
-                                            Default (System Basic filter)
-                                        </SelectItem>
-                                        {filters.map((f) => (
-                                            <SelectItem key={f.id} value={f.id}>
-                                                {f.filter_name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Right: Helper CTA */}
-                            <div className="text-sm text-muted-foreground">
-                                <span>Don’t see the filter you want?</span>
-                                <Button
+        <ContentLayout title="Integrations">
+            <div className="max-w-5xl mx-auto p-8 space-y-6">
+                <Card className="p-8">
+                    <CardContent className="space-y-6">
+                        {/* Header */}
+                        <div className="space-y-1 mt-5">
+                            <div className="flex items-center gap-2">
+                                <button
                                     type="button"
-                                    onClick={() => router.push("/filters/create-filter")}
-                                    className="text-left font-medium mt-2"
+                                    onClick={() => router.back()}
+                                    className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
+                                    aria-label="Go back"
                                 >
-                                    Create a new filter
-                                </Button>
+                                    <ArrowLeft className="h-5 w-5" />
+                                </button>
+
+                                <h1 className="text-2xl font-semibold">Edit Gmail Integration</h1>
                             </div>
+
+                            <p className="text-sm text-muted-foreground">
+                                Update the connection details for your Gmail account.
+                            </p>
                         </div>
 
-
-                        {/* Filter Form */}
-                        <fieldset disabled={filterId === "default" || filterLoading}>
-                            {/* Name */}
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                handleSave();
+                            }}
+                            className="space-y-6"
+                        >
+                            {/* Email (read-only) */}
                             <div className="space-y-2">
-                                <Label>
-                                    Filter Name <span className="text-destructive">*</span>
-                                </Label>
-                                <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                                <Label>Email Address</Label>
+                                <Input value={emailAddress} disabled />
                             </div>
 
-                            {/* Notification Mode */}
+                            {/* Connection Name */}
                             <div className="space-y-2">
-                                <Label>Notification Frequency</Label>
-                                <Select value={notificationMode} onValueChange={setNotificationMode}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="minimal">Minimal (only critical emails)</SelectItem>
-                                        <SelectItem value="balanced">Balanced (recommended)</SelectItem>
-                                        <SelectItem value="aggressive">Aggressive (notify more often)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Watch Tags */}
-                            <div className="space-y-2">
-                                <Label>Important Keywords</Label>
-                                <TagInput
-                                    placeholder="Type a keyword and press Enter"
-                                    tags={watchTags}
-                                    value={watchInput}
-                                    onValueChange={setWatchInput}
-                                    onAddTag={(tag) => setWatchTags([...watchTags, tag])}
-                                    onRemoveTag={(tag) => setWatchTags(watchTags.filter((t) => t !== tag))}
+                                <Label>Connection Name</Label>
+                                <Input
+                                    placeholder="Work Gmail, Personal, etc."
+                                    value={connectionName}
+                                    onChange={(e) => setConnectionName(e.target.value)}
+                                    required
                                 />
                             </div>
 
-                            {/* Ignore Tags */}
-                            <div className="space-y-2">
-                                <Label>Ignored Keywords</Label>
-                                <TagInput
-                                    placeholder="Type a keyword and press Enter"
-                                    tags={ignoreTags}
-                                    value={ignoreInput}
-                                    onValueChange={setIgnoreInput}
-                                    onAddTag={(tag) => setIgnoreTags([...ignoreTags, tag])}
-                                    onRemoveTag={(tag) => setIgnoreTags(ignoreTags.filter((t) => t !== tag))}
-                                />
+                            {/* Filter Select */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+                                {/* Left: Filter dropdown */}
+                                <div className="md:col-span-2 space-y-2">
+                                    <Label>Filter</Label>
+                                    <Select
+                                        value={filterId}
+                                        onValueChange={async (val) => {
+                                            setFilterId(val);
+                                            await fetchFilter(val);
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a filter" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="default">
+                                                Default (System Basic filter)
+                                            </SelectItem>
+                                            {filters.map((f) => (
+                                                <SelectItem key={f.id} value={f.id}>
+                                                    {f.filter_name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Right: Helper CTA */}
+                                <div className="text-sm text-muted-foreground">
+                                    <span>Don’t see the filter you want?</span>
+                                    <Button
+                                        type="button"
+                                        onClick={() => router.push("/filters/create-filter")}
+                                        className="text-left font-medium mt-2"
+                                    >
+                                        Create a new filter
+                                    </Button>
+                                </div>
                             </div>
 
-                            {/* Toggles */}
-                            <div className="space-y-4">
-                                <ToggleRow
-                                    label="First-time sender alerts"
-                                    description="Notify me when someone emails me for the first time"
-                                    checked={firstTimeSender}
-                                    onChange={setFirstTimeSender}
-                                />
-                                <ToggleRow
-                                    label="Thread reply alerts"
-                                    description="Notify me when someone replies"
-                                    checked={threadReply}
-                                    onChange={setThreadReply}
-                                />
-                                <ToggleRow
-                                    label="Deadline detection"
-                                    description="Notify me about deadlines"
-                                    checked={deadlineAlert}
-                                    onChange={setDeadlineAlert}
-                                />
-                                <ToggleRow
-                                    label="Subscriptions & recurring payments"
-                                    description="Notify me about recurring charges"
-                                    checked={subscriptionAlert}
-                                    onChange={setSubscriptionAlert}
-                                />
-                            </div>
-                        </fieldset>
 
-                        <Button type="submit" className="w-full" disabled={saving}>
-                            {saving ? "Saving..." : "Save Changes"}
-                        </Button>
-                    </form>
-                </CardContent>
-            </Card>
-        </div>
+                            {/* Filter Form */}
+                            <fieldset disabled={filterId === "default" || filterLoading}>
+                                {/* Name */}
+                                <div className="space-y-2">
+                                    <Label>
+                                        Filter Name <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Input value={name} onChange={(e) => setName(e.target.value)} required />
+                                </div>
+
+                                {/* Notification Mode */}
+                                <div className="space-y-2">
+                                    <Label>Notification Frequency</Label>
+                                    <Select value={notificationMode} onValueChange={setNotificationMode}>
+                                        <SelectTrigger>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="minimal">Minimal (only critical emails)</SelectItem>
+                                            <SelectItem value="balanced">Balanced (recommended)</SelectItem>
+                                            <SelectItem value="aggressive">Aggressive (notify more often)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Watch Tags */}
+                                <div className="space-y-2">
+                                    <Label>Important Keywords</Label>
+                                    <TagInput
+                                        placeholder="Type a keyword and press Enter"
+                                        tags={watchTags}
+                                        value={watchInput}
+                                        onValueChange={setWatchInput}
+                                        onAddTag={(tag) => setWatchTags([...watchTags, tag])}
+                                        onRemoveTag={(tag) => setWatchTags(watchTags.filter((t) => t !== tag))}
+                                    />
+                                </div>
+
+                                {/* Ignore Tags */}
+                                <div className="space-y-2">
+                                    <Label>Ignored Keywords</Label>
+                                    <TagInput
+                                        placeholder="Type a keyword and press Enter"
+                                        tags={ignoreTags}
+                                        value={ignoreInput}
+                                        onValueChange={setIgnoreInput}
+                                        onAddTag={(tag) => setIgnoreTags([...ignoreTags, tag])}
+                                        onRemoveTag={(tag) => setIgnoreTags(ignoreTags.filter((t) => t !== tag))}
+                                    />
+                                </div>
+
+                                {/* Toggles */}
+                                <div className="space-y-4">
+                                    <ToggleRow
+                                        label="First-time sender alerts"
+                                        description="Notify me when someone emails me for the first time"
+                                        checked={firstTimeSender}
+                                        onChange={setFirstTimeSender}
+                                    />
+                                    <ToggleRow
+                                        label="Thread reply alerts"
+                                        description="Notify me when someone replies"
+                                        checked={threadReply}
+                                        onChange={setThreadReply}
+                                    />
+                                    <ToggleRow
+                                        label="Deadline detection"
+                                        description="Notify me about deadlines"
+                                        checked={deadlineAlert}
+                                        onChange={setDeadlineAlert}
+                                    />
+                                    <ToggleRow
+                                        label="Subscriptions & recurring payments"
+                                        description="Notify me about recurring charges"
+                                        checked={subscriptionAlert}
+                                        onChange={setSubscriptionAlert}
+                                    />
+                                </div>
+                            </fieldset>
+
+                            <Button type="submit" className="w-full" disabled={saving}>
+                                {saving ? "Saving..." : "Save Changes"}
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </div>
+        </ContentLayout>
     );
 }
 

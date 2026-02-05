@@ -4,13 +4,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
 import { EnvVarWarning } from './env-var-warning';
-import { ThemeSwitcher } from './theme-switcher';
 import { AuthButton } from './auth-button';
 import { hasEnvVars } from "@/lib/utils";
 import { Sheet, SheetTrigger, SheetContent, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/app/context/userContext";
 import { Menu } from 'lucide-react';
+import { ModeToggle } from './mode-toggle';
 
 function Header() {
     const { user } = useUser();
@@ -29,7 +29,7 @@ function Header() {
 
                 {/* Middle: ThemeSwitcher (mobile only) */}
                 <div className="absolute left-1/2 -translate-x-1/2 md:hidden">
-                    <ThemeSwitcher />
+                    <ModeToggle />
                 </div>
 
                 {/* Desktop Navigation */}
@@ -43,7 +43,7 @@ function Header() {
                 {/* Right side (Desktop: Theme + Auth) */}
                 <div className="hidden md:flex gap-1 items-center">
                     {!hasEnvVars ? <EnvVarWarning /> : <>
-                        <ThemeSwitcher />
+                        <ModeToggle />
                         <AuthButton />
                     </>}
                 </div>
