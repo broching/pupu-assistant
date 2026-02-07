@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ data });
         }
     } catch (err: any) {
-        console.error("GET /pods error:", err);
+        console.error("GET /gmail-connections error:", err);
         return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
     }
 }

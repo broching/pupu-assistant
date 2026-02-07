@@ -370,6 +370,9 @@ export default function PricingPage() {
 
         </div>
         <PricingQnA />
+        <div className="gap" style={{marginBottom:"5rem"}}>
+
+        </div>
       </div>
     </div>
   );
