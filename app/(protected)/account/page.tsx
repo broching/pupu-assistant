@@ -11,10 +11,15 @@ import { ContentLayout } from "@/components/admin-panel/content-layout";
 
 export default function AccountPage() {
   const { user, displayName, updateUser, isLoading: userLoading } = useUser();
-  const [name, setName] = useState<string | null>(displayName);
+  const [name, setName] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  // Initialize name from user context once
+  // Initialize name once when displayName is loaded
+  useEffect(() => {
+    if (displayName !== undefined && displayName !== null) {
+      setName(displayName);
+    }
+  }, [displayName]);
 
   const handleSave = async () => {
     if (!user || !name) return;
@@ -52,7 +57,7 @@ export default function AccountPage() {
   };
 
   // Show loading until user context is ready and name is loaded
-  if (userLoading || name === null) {
+  if (userLoading) {
     return (
       <ContentLayout title="Account">
         <div className="max-w-3xl mx-auto mt-5 text-center text-muted-foreground">

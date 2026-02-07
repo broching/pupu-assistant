@@ -41,7 +41,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       const { data } = await supabase.auth.getSession();
       setSession(data.session ?? null);
       setUser(data.session?.user ?? null);
-      setIsLoading(false);
+
       let userData = data.session?.user.user_metadata.name;
       // Only fetch API if session exists
       if (data.session?.access_token) {
@@ -58,6 +58,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           setDisplayName(
             userData.user.name
           )
+          setIsLoading(false);
         } catch (err) {
           console.error("Failed to fetch /api/user:", err);
         }

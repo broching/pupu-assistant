@@ -29,8 +29,9 @@ export function UserNav() {
   const avatarSrc =
     user?.user_metadata?.avatar_url ||
     user?.user_metadata?.picture ||
-    null;
+    "";
 
+  console.log(avatarSrc)
   return (
     <DropdownMenu>
       <TooltipProvider disableHoverableContent>
@@ -43,13 +44,15 @@ export function UserNav() {
               >
                 <Avatar className="h-8 w-8">
                   {avatarSrc ? (
-                    <AvatarImage src={avatarSrc} alt="Avatar" />
+                    // Only render AvatarImage if src is a non-empty string
+                    <AvatarImage key={avatarSrc} src={avatarSrc} alt="Avatar" />
                   ) : (
                     <AvatarFallback className="bg-muted text-muted-foreground flex items-center justify-center">
                       <UserIcon className="w-4 h-4" />
                     </AvatarFallback>
                   )}
                 </Avatar>
+
               </Button>
             </DropdownMenuTrigger>
           </TooltipTrigger>
