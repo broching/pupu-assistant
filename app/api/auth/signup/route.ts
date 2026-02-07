@@ -6,9 +6,9 @@ export async function POST(req: Request) {
     console.log("reached");
 
     const supabase = await createClient({ useServiceRole: true });
-    const { email, password} = await req.json();
+    const { email, password, name} = await req.json();
 
-    if (!email || !password) {
+    if (!email || !password || !name) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
@@ -44,6 +44,9 @@ export async function POST(req: Request) {
       password,
       options: {
         emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/protected`,
+        data: {
+          name: name
+        }
       },
     });
 
@@ -56,6 +59,7 @@ export async function POST(req: Request) {
       const { error: dbError } = await supabase.from("users").insert({
         id: data.user.id,
         email: data.user.email,
+        name: data.user.user_metadata.name,
         subscription: "free",
       });
 

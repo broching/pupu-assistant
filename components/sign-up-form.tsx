@@ -24,6 +24,7 @@ export function SignUpForm({
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("")
   const [password, setPassword] = useState("");
   const [repeatPassword, setRepeatPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +44,7 @@ export function SignUpForm({
     }
 
     try {
-      await signup(email, password);
+      await signup(email, name, password);
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "An error occurred, please try again"
@@ -93,6 +94,18 @@ export function SignUpForm({
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="email">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="your name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </div>
 

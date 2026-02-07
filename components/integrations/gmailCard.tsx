@@ -189,7 +189,7 @@ export default function GmailCard({ telegramConnected = true }: GmailCardProps) 
           </div>
           {/* Show Telegram dependency alert */}
           {!telegramConnected && (
-            <Alert className="w-full text-yellow-800">
+            <Alert className="w-full text-yellow-800 w-full md:w-[50%]">
               <AlertTriangle className="h-5 w-5 text-yellow-600" />
               <AlertTitle>Telegram not connected</AlertTitle>
               <AlertDescription>

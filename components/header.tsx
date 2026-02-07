@@ -13,7 +13,7 @@ import { Menu } from 'lucide-react';
 import { ModeToggle } from './mode-toggle';
 
 function Header() {
-    const { user } = useUser();
+    const { user, session } = useUser();
 
     return (
         <nav className="w-full border-b border-b-foreground/10">
@@ -83,7 +83,7 @@ function Header() {
                             </div>
 
                             {/* Sign In / Sign Up Buttons */}
-                            {!user && (
+                            {!user && !session?.access_token && (
                                 <div className="flex flex-col gap-2">
                                     <SheetClose asChild>
                                         <Link href="/auth/login">

@@ -5,14 +5,17 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import type { User, Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { createClientWithToken } from "@/lib/supabase/clientWithToken";
+import { useApiClient } from "../utils/axiosClient";
 
 interface UserContextType {
   user: User | null;
+  displayName: string | null;
   session: Session | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
+  signup: (email: string, name: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userUpdates: Partial<User>) => void;
 }
@@ -28,6 +31,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [displayName, setDisplayName] = useState<string | null>(null)
 
   const supabase = createClient();
 
@@ -38,7 +42,28 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       setSession(data.session ?? null);
       setUser(data.session?.user ?? null);
       setIsLoading(false);
-      console.log('user details:', data.session?.user)
+      let userData = data.session?.user.user_metadata.name;
+      // Only fetch API if session exists
+      if (data.session?.access_token) {
+        try {
+          const res = await fetch("/api/user", {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${data.session.access_token}`,
+            },
+          });
+
+          userData = await res.json();
+          setDisplayName(
+            userData.user.name
+          )
+        } catch (err) {
+          console.error("Failed to fetch /api/user:", err);
+        }
+
+      }
+
     };
 
     fetchSession();
@@ -100,7 +125,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   // Signup function
 
   // Signup function
-  const signup = async (email: string, password: string) => {
+  const signup = async (email: string, name: string, password: string) => {
     setIsLoading(true);
 
     try {
@@ -155,7 +180,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   };
 
   return (
-    <UserContext.Provider value={{ user, session, isLoading, login, signup, logout, updateUser, loginWithGoogle }}>
+    <UserContext.Provider value={{ user, displayName, session, isLoading, login, signup, logout, updateUser, loginWithGoogle }}>
       {children}
     </UserContext.Provider>
   );

@@ -6,11 +6,11 @@ import { LogoutButton } from "./logout-button";
 import { useUser } from "@/app/context/userContext";
 
 export function AuthButton() {
-  const { user } = useUser();
+  const { user, displayName, session } = useUser();
 
-  return user ? (
+  return (user && session?.access_token) ? (
     <div className="flex items-center gap-4">
-      <span className="hidden md:inline">Hey, {user.email}!</span>
+      <span className="hidden md:inline">Hey, {displayName}!</span>
       <LogoutButton />
     </div>
   ) : (
