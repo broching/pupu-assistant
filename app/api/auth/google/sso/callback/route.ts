@@ -22,7 +22,6 @@ export async function GET(request: Request) {
   }
 
   const { user, session } = data;
-  console.log('oath data:', data)
 
   // 3️⃣ Create a client AUTHENTICATED as the user
   const authedSupabase = await createClientWithToken(session.access_token);

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
         const id = url.searchParams.get("userId");
 
         if (id) {
-            // Get single pod by ID
+            // Get single connection by ID
             const { data, error } = await supabase
                 .from("user_gmail_tokens")
                 .select("*")

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { createClientWithToken } from "@/lib/supabase/clientWithToken";
 import { oauth2Client } from "@/lib/google";
+import { decrypt } from "@/lib/encryption/helper";
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     }
 
     /* ------------------------------------
-       3️⃣ Fetch Gmail token row (ONE email)
+       3️⃣ Fetch Gmail token row
     ------------------------------------ */
     const { data: rows, error: fetchError } = await supabase
       .from("user_gmail_tokens")
@@ -50,43 +51,58 @@ export async function POST(req: NextRequest) {
 
     const gmailToken = rows[0];
 
+    if (!gmailToken.access_token || !gmailToken.refresh_token) {
+      console.warn(`Gmail tokens missing for userId=${userId}, email=${email}`);
+    }
+
     /* ------------------------------------
-       4️⃣ Create OAuth client for THIS mailbox
+       4️⃣ Decrypt tokens (only if present)
+    ------------------------------------ */
+    let decryptedAccessToken: string | undefined;
+    let decryptedRefreshToken: string | undefined;
+
+    try {
+      decryptedAccessToken = gmailToken.access_token ? decrypt(gmailToken.access_token) : undefined;
+      decryptedRefreshToken = gmailToken.refresh_token ? decrypt(gmailToken.refresh_token) : undefined;
+    } catch (decryptErr) {
+      console.error("Failed to decrypt Gmail tokens:", decryptErr);
+      return NextResponse.json(
+        { error: "Failed to decrypt Gmail tokens" },
+        { status: 500 }
+      );
+    }
+
+    /* ------------------------------------
+       5️⃣ Create OAuth client for THIS mailbox
     ------------------------------------ */
     oauth2Client.setCredentials({
-      access_token: gmailToken.access_token,
-      refresh_token: gmailToken.refresh_token,
+      access_token: decryptedAccessToken,
+      refresh_token: decryptedRefreshToken,
       scope: gmailToken.scope,
       token_type: gmailToken.token_type,
       expiry_date: gmailToken.expiry_date,
     });
 
     /* ------------------------------------
-       5️⃣ Disable Gmail watch (THIS EMAIL ONLY)
+       6️⃣ Disable Gmail watch (optional)
     ------------------------------------ */
     try {
       const gmail = google.gmail({ version: "v1", auth: oauth2Client });
-
-      await gmail.users.stop({
-        userId: "me",
-      });
-
+      await gmail.users.stop({ userId: "me" });
       console.log(`Gmail watch stopped for ${email}`);
     } catch (watchErr) {
-      // Log but DO NOT block deletion
       console.error("Failed to stop Gmail watch:", watchErr);
     }
 
     /* ------------------------------------
-       6️⃣ Delete ONLY this Gmail connection
+       7️⃣ Delete Gmail connection
     ------------------------------------ */
-    const {data, error: deleteError } = await supabase
+    const { data, error: deleteError } = await supabase
       .from("user_gmail_tokens")
       .delete()
       .eq("user_id", userId)
       .eq("email_address", email);
 
-    console.log("delete data:",data)
     if (deleteError) {
       console.error(deleteError);
       return NextResponse.json(
@@ -95,8 +111,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log("Deleted Gmail connection:", data);
+
     /* ------------------------------------
-       7️⃣ Success
+       8️⃣ Success
     ------------------------------------ */
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { oauth2Client } from "@/lib/google";
 import { createClient } from "@/lib/supabase/server";
 import { google } from "googleapis";
+import { encrypt } from "@/lib/encryption/helper";
 
 const GMAIL_LIMITS: Record<string, number> = {
   free_trial: 1,
@@ -112,14 +113,16 @@ export async function GET(req: NextRequest) {
     /* ----------------------------------------
        7️⃣ Upsert Gmail tokens (SAFE)
     ---------------------------------------- */
+    const encryptedAccessToken= encrypt(tokens?.access_token?? "")
+    const encryptedRefreshToken = encrypt(tokens?.refresh_token?? "")
     const { error: tokenError } = await supabase
       .from("user_gmail_tokens")
       .upsert(
         {
           user_id: userId,
           email_address: email,
-          access_token: tokens.access_token ?? null,
-          refresh_token: tokens.refresh_token ?? null,
+          access_token: encryptedAccessToken,
+          refresh_token: encryptedRefreshToken,
           scope: tokens.scope ?? null,
           token_type: tokens.token_type ?? null,
           expiry_date: tokens.expiry_date ?? null,
