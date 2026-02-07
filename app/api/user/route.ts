@@ -5,24 +5,51 @@ import { createClientWithToken } from "@/lib/supabase/clientWithToken";
 // GET: fetch current user
 export async function GET(req: NextRequest) {
   try {
-    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
-    if (!token) return NextResponse.json({ error: "Authorization token required" }, { status: 401 });
+    const token = req.headers
+      .get("Authorization")
+      ?.replace("Bearer ", "");
+
+    if (!token) {
+      return NextResponse.json(
+        { error: "Authorization token required" },
+        { status: 401 }
+      );
+    }
 
     const supabase = await createClientWithToken(token);
 
+    // ✅ get authenticated user
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // ✅ fetch user row by ID
     const { data: user, error } = await supabase
       .from("users")
       .select("*")
-      .single(); // RLS ensures it's the current user
+      .eq("id", authUser.id)
+      .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 401 });
+    if (error) {
+      console.error("Error fetching user:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
 
     return NextResponse.json({ user });
   } catch (err: any) {
     console.error("GET /user error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || "Internal server error" },
+      { status: 500 }
+    );
   }
 }
+
 // PUT: update current user
 export async function PUT(req: NextRequest) {
   try {

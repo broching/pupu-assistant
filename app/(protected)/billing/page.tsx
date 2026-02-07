@@ -103,7 +103,10 @@ export default function BillingPage() {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${session.access_token}`,
                 },
-                body: JSON.stringify({ plan }),
+                body: JSON.stringify({
+                    plan,
+                    url_from: "billing", // explicitly mark billing page
+                }),
             });
 
             const data = await res.json();
@@ -129,7 +132,7 @@ export default function BillingPage() {
 
     return (
         <ContentLayout title="Billing">
-            <div className="container py-20 flex justify-center">
+            <div className="container mt-5 flex justify-center">
                 <div className="w-full max-w-5xl space-y-8">
 
                     {/* =============================

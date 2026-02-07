@@ -38,6 +38,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       setSession(data.session ?? null);
       setUser(data.session?.user ?? null);
       setIsLoading(false);
+      console.log('user details:', data.session?.user)
     };
 
     fetchSession();

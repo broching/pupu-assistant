@@ -7,6 +7,7 @@ import { getAppBaseUrl } from "@/lib/utils/appUrl";
 type CheckoutBody = {
   priceId?: string;
   plan?: "starter" | "plus" | "professional";
+  url_from?: "billing" | "pricing"; // new field
 };
 
 export async function POST(req: NextRequest) {
@@ -16,11 +17,13 @@ export async function POST(req: NextRequest) {
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
     const authClient = await createClientWithToken(token);
     const {
       data: { user },
       error: authError,
     } = await authClient.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -29,6 +32,7 @@ export async function POST(req: NextRequest) {
     const plan = body.plan;
     const priceId =
       body.priceId ?? (plan ? getPriceIdForPlan(plan) : undefined);
+
     if (!priceId) {
       return NextResponse.json(
         { error: "Missing priceId or plan" },
@@ -36,9 +40,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const urlFrom = body.url_from ?? "pricing"; // default to pricing
+    const baseUrl = getAppBaseUrl();
+
+    // Set success and cancel URLs depending on where checkout was initiated
+    const successUrl =
+      urlFrom === "billing"
+        ? `${baseUrl}/billing`
+        : `${baseUrl}/pricing?success=1`;
+
+    const cancelUrl =
+      urlFrom === "billing"
+        ? `${baseUrl}/billing`
+        : `${baseUrl}/pricing?canceled=1`;
+
     const supabase = await createClient({ useServiceRole: true });
     const stripe = getStripe();
-    const baseUrl = getAppBaseUrl();
 
     const { data: subRow } = await supabase
       .from("subscriptions")
@@ -58,8 +75,8 @@ export async function POST(req: NextRequest) {
     } = {
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${baseUrl}/pricing?success=1`,
-      cancel_url: `${baseUrl}/pricing?canceled=1`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       metadata: { user_id: user.id },
     };
 

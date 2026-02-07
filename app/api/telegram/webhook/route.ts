@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
       // Try to get userId from space or query
       let userId: string | null = null;
       const parts = text.split(" ");
+      console.log(parts);
       if (parts.length > 1 && parts[1].trim()) {
         userId = parts[1].trim();
       } else if (text.includes("?")) {
@@ -67,6 +68,23 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true });
       }
 
+      // Check if the telegram chat is already linked
+      const { data: existing } = await supabase
+        .from("user_telegram_connections")
+        .select("telegram_chat_id")
+        .eq("telegram_chat_id", chatId)
+        .single();
+
+      if (existing) {
+        // Send error to Telegram
+        await sendByChatId(
+          chatId,
+          "❌ This Telegram account has already been linked to another user account. Please unlink the account first and try again."
+        );
+        return NextResponse.json({ ok: true });
+      }
+
+      // Upsert new connection
       await supabase.from("user_telegram_connections").upsert(
         {
           user_id: userId,
@@ -83,6 +101,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ ok: true });
     }
+
 
     // -----------------------------
     // 4️⃣ Handle pending custom reminders

@@ -155,6 +155,7 @@ export default function PricingPage() {
     }
 
     setCheckoutLoading(plan);
+
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -162,7 +163,10 @@ export default function PricingPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({
+          plan,
+          url_from: "pricing", // explicitly mark pricing page
+        }),
       });
 
       const data = await res.json();
@@ -175,6 +179,7 @@ export default function PricingPage() {
       setCheckoutLoading(null);
     }
   };
+
 
   const handlePortal = async () => {
     if (!session?.access_token) return;
@@ -201,7 +206,7 @@ export default function PricingPage() {
 
   return (
     <div className="w-full flex justify-center" style={{ maxWidth: "100rem" }} >
-      <div className="w-full mt-10">
+      <div className="w-full p-7 mt-10">
         {/* =============================
            HEADER
         ============================== */}
@@ -370,7 +375,7 @@ export default function PricingPage() {
 
         </div>
         <PricingQnA />
-        <div className="gap" style={{marginBottom:"5rem"}}>
+        <div className="gap" style={{ marginBottom: "5rem" }}>
 
         </div>
       </div>
