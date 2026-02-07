@@ -247,59 +247,58 @@ export default function GmailCard({ telegramConnected = true }: GmailCardProps) 
                     Connected Gmail accounts
                   </p>
 
-                  <div className="rounded-md border">
-                    <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
-                      <div className="col-span-3">Connection Name</div>
-                      <div className="col-span-4">Email address</div>
-                      <div className="col-span-3">Filter</div>
-                      <div className="col-span-2 text-right">Actions</div>
-                    </div>
-
-                    {connections.map((conn, index) => (
-                      <div
-                        key={conn.id}
-                        className="grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0"
-                      >
-                        <div className="col-span-3 font-medium">
-                          {conn.connection_name || `Connection ${index + 1}`}
-                        </div>
-
-                        <div className="col-span-4 text-muted-foreground flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          {conn.email_address}
-                        </div>
-
-                        <div className="col-span-3 text-muted-foreground">
-                          {conn.filter_name || "Default"}
-                        </div>
-
-                        <div className="col-span-2 flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              router.push(`integrations/${conn.id}/edit`)
-                            }
-                          >
-                            <Pencil className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() =>
-                              handleDisconnectGmail(conn.email_address)
-                            }
-                            disabled={loading}
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Disconnect
-                          </Button>
-                        </div>
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[600px] rounded-md border">
+                      <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
+                        <div className="col-span-3">Connection Name</div>
+                        <div className="col-span-4">Email address</div>
+                        <div className="col-span-3">Filter</div>
+                        <div className="col-span-2 text-right">Actions</div>
                       </div>
-                    ))}
+
+                      {connections.map((conn, index) => (
+                        <div
+                          key={conn.id}
+                          className="grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0"
+                        >
+                          <div className="col-span-3 font-medium">
+                            {conn.connection_name || `Connection ${index + 1}`}
+                          </div>
+
+                          <div className="col-span-4 text-muted-foreground flex items-center gap-2">
+                            <Mail className="h-4 w-4" />
+                            {conn.email_address}
+                          </div>
+
+                          <div className="col-span-3 text-muted-foreground">
+                            {conn.filter_name || "Default"}
+                          </div>
+
+                          <div className="col-span-2 flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => router.push(`integrations/${conn.id}/edit`)}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDisconnectGmail(conn.email_address)}
+                              disabled={loading}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Disconnect
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+
                 </div>
               )}
               {/* CTA */}

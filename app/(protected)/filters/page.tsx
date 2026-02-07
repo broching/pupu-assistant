@@ -86,7 +86,7 @@ export default function FiltersPage() {
 
   return (
     <ContentLayout title="Filters">
-      <div className="flex justify-center px-6">
+      <div className="flex justify-center">
         <div className="w-full max-w-screen-2xl mt-7 space-y-4">
           {/* Page Header */}
           <div className="flex items-center justify-between">
@@ -103,66 +103,66 @@ export default function FiltersPage() {
           </div>
 
           {/* Table */}
-          <div className="rounded-md border w-full max-w-screen-2xl mt-7">
-            {/* Header */}
-            <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
-              <div className="col-span-3">Filter Name</div>
-              <div className="col-span-2">Notification Mode</div>
-              <div className="col-span-4">Watch Tags</div>
-              <div className="col-span-3 text-right">Actions</div>
-            </div>
+          <div className="overflow-x-auto rounded-md border w-full max-w-screen-2xl mt-7">
+            <div className="min-w-[700px]">
+              {/* Header */}
+              <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
+                <div className="col-span-3">Filter Name</div>
+                <div className="col-span-2">Notification Mode</div>
+                <div className="col-span-4">Watch Tags</div>
+                <div className="col-span-3 text-right">Actions</div>
+              </div>
 
-            {/* Rows */}
-            {filters.map((filter) => (
-              <div
-                key={filter.id}
-                className="grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0"
-              >
-                <div className="col-span-3 flex items-center gap-2 text-muted-foreground">
-                  <Mail className="h-4 w-4" />
-                  {filter.filter_name}
-                </div>
-
-                <div className="col-span-2 text-muted-foreground">
-                  {filter.notification_mode}
-                </div>
-
-                <div className="col-span-4 flex items-center gap-2">
-                  {/* Tags container */}
-                  <div className="relative max-h-[28px] overflow-hidden flex flex-wrap gap-1">
-                    {filter.watch_tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground whitespace-nowrap"
-                      >
-                        {tag}
-                      </span>
-                    ))}
+              {/* Rows */}
+              {filters.map((filter) => (
+                <div
+                  key={filter.id}
+                  className="grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0"
+                >
+                  <div className="col-span-3 flex items-center gap-2 text-muted-foreground">
+                    <Mail className="h-4 w-4" />
+                    {filter.filter_name}
                   </div>
 
-                  {/* Overflow indicator */}
-                  <span style={{ fontSize: "1.3rem" }} className="text-muted-foreground">
-                    …
-                  </span>
-                </div>
+                  <div className="col-span-2 text-muted-foreground">
+                    {filter.notification_mode}
+                  </div>
 
-                <div className="col-span-3 flex justify-end gap-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(filter.id)}>
-                    <Pencil className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
+                  <div className="col-span-4 flex items-center gap-2">
+                    {/* Tags container - show only 3 tags */}
+                    <div className="relative max-h-[28px] overflow-hidden flex flex-wrap gap-1">
+                      {filter.watch_tags.slice(0, 3).map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground whitespace-nowrap"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {filter.watch_tags.length > 3 && (
+                        <span className="text-muted-foreground">…</span>
+                      )}
+                    </div>
+                  </div>
 
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleOpenDeleteModal(filter)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Delete
-                  </Button>
+                  <div className="col-span-3 flex justify-end gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(filter.id)}>
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleOpenDeleteModal(filter)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
