@@ -19,7 +19,6 @@ export async function getSubscription(
 
   if (error || !data) return null;
   const row = data as SubscriptionRow;
-  console.log('row', row)
   return rowToState(row);
 }
 
@@ -71,7 +70,7 @@ export async function canAccessPlan(
   if (state.planName === "free_trial" && state.isTrialing)
     return requiredPlan === "free_trial";
   if (state.status === "canceled" || state.status === "past_due")
-    return requiredPlan === "free_trial";
+    return false;
   return userIndex >= requiredIndex;
 }
 

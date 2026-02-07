@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { parseGmailMessage } from "@/lib/gmail/parseGmail";
 import { sendTelegramMessage } from "@/lib/telegram/sendTelegramMessage";
 import { analyzeEmailWithAI } from "./analyzeEmailWithAi";
+import { canAccessPlan } from "../subscription/server";
 
 export async function getUserTokens(supabase: Awaited<ReturnType<typeof createClient>>, emailAddress: string) {
     const { data, error } = await supabase
@@ -57,7 +58,19 @@ export function createOAuthClient(userTokens: any, supabase: any) {
     });
 }
 
-export async function fetchGmailHistory(gmail: any, userTokens: any, supabase: any) {
+export async function fetchGmailHistory(
+    gmail: any,
+    userTokens: any,
+    supabase: any
+) {
+    const hasAccess = await canAccessPlan(userTokens.user_id, "free_trial");
+    if (!hasAccess) {
+        console.warn("🚫 fetchGmailHistory blocked — no subscription access", {
+            userId: userTokens.user_id,
+        });
+        return { data: { history: [] } }; // soft stop
+    }
+
     try {
         return await gmail.users.history.list({
             userId: "me",
@@ -74,7 +87,6 @@ export async function fetchGmailHistory(gmail: any, userTokens: any, supabase: a
             httpStatus: res?.status,
             oauthError: data?.error,
             oauthDescription: data?.error_description,
-            fullResponseData: data,
         });
 
         if (
@@ -94,6 +106,7 @@ export async function fetchGmailHistory(gmail: any, userTokens: any, supabase: a
     }
 }
 
+
 export async function processHistories(
     supabase: any,
     gmail: any,
@@ -101,32 +114,48 @@ export async function processHistories(
     userTokens: any,
     filter: any
 ) {
+    const hasAccess = await canAccessPlan(userTokens.user_id, "free_trial");
+    if (!hasAccess) {
+        console.warn("🚫 processHistories blocked — subscription inactive", {
+            userId: userTokens.user_id,
+        });
+        return;
+    }
+
     for (const h of histories) {
         if (!h.messages) continue;
 
         for (const msg of h.messages) {
+            let responseRowId: string | null = null;
+
             try {
                 // ==================================================
-                // STEP 0: DB dedupe check (HARD STOP)
+                // STEP 0: ATOMIC CLAIM (THIS IS THE FIX)
                 // ==================================================
-                const { data: existing, error: fetchError } = await supabase
+                const { data: claim, error: claimError } = await supabase
                     .from("email_ai_responses")
+                    .insert(
+                        {
+                            user_id: userTokens.user_id,
+                            message_id: msg.id,
+                            message_status: "processing",
+                        },
+                        {
+                            onConflict: ["user_id", "message_id"],
+                            ignoreDuplicates: true,
+                        }
+                    )
                     .select("id")
-                    .eq("message_id", msg.id)
-                    .eq("user_id", userTokens.user_id)
                     .maybeSingle();
 
-                if (fetchError) {
-                    console.error("❌ Failed to check existing response", fetchError);
-                    continue;
-                }
-
-                if (existing) {
+                if (!claim) {
                     console.log(
-                        `⚠️ Skipping message ${msg.id} for user ${userTokens.user_id}: already processed`
+                        `⚠️ Message ${msg.id} already claimed — skipping AI completely`
                     );
                     continue;
                 }
+
+                responseRowId = claim.id;
 
                 // ==================================================
                 // STEP 1: Fetch Gmail message
@@ -140,7 +169,7 @@ export async function processHistories(
                 const email = parseGmailMessage(fullMessage.data);
 
                 // ==================================================
-                // STEP 2: Extract boolean-trigger signals
+                // STEP 2: Signals
                 // ==================================================
                 const signals = extractEmailSignals(email);
 
@@ -151,7 +180,7 @@ export async function processHistories(
                     (filter.enable_subscription_payment_alert && signals.isSubscription);
 
                 // ==================================================
-                // STEP 3: AI analysis
+                // STEP 3: AI analysis (ONLY ONE CALL EVER)
                 // ==================================================
                 const analysis = await analyzeEmailWithAI({
                     sender: email.from,
@@ -170,77 +199,56 @@ export async function processHistories(
 
                 const shouldSendTelegram = booleanOverride || scorePass;
 
-                if (!shouldSendTelegram) {
-                    console.log(
-                        `🔕 Suppressed: no boolean override + score ${score} below ${mode} threshold`
-                    );
-                }
-
                 // ==================================================
-                // STEP 4: Insert into DB (authoritative dedupe)
+                // STEP 4: FINALIZE ROW
                 // ==================================================
-                const { data } = await supabase
+                await supabase
                     .from("email_ai_responses")
-                    .insert(
-                        {
-                            user_id: userTokens.user_id,
-                            message_id: msg.id,
-                            reply_message: analysis.emailAnalysis.replyMessage,
-                            message_score: score,
-                            flagged_keywords: analysis.emailAnalysis.keywordsFlagged,
-                            usage_tokens: analysis.usageTokens ?? null,
-                        },
-                        {
-                            onConflict: ["user_id", "message_id"],
-                            ignoreDuplicates: true,
-                        }
-                    )
-                    .select("id")
-                    .maybeSingle();
+                    .update({
+                        message_status: "completed",
+                        reply_message: analysis.emailAnalysis.replyMessage,
+                        message_score: score,
+                        flagged_keywords: analysis.emailAnalysis.keywordsFlagged,
+                        usage_tokens: analysis.usageTokens ?? null,
+                        updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", responseRowId);
 
-                if (!data) {
-                    console.log(
-                        `⚠️ Race duplicate detected for message ${msg.id}, skipping Telegram`
-                    );
-                    continue;
-                }
+                if (!shouldSendTelegram) continue;
 
                 // ==================================================
-                // STEP 5: Telegram send + ACTIONS
+                // STEP 5: Telegram
                 // ==================================================
-                if (shouldSendTelegram) {
-                    const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
-                    const replyUserMessage =
-                        `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
-                    const datelineDate = analysis.emailAnalysis.datelineDate;
+                const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
+                const replyUserMessage =
+                    `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
 
-                    await sendTelegramMessage(
-                        userTokens.user_id,
-                        replyUserMessage,
-                        {
-                            reply_markup: {
-                                inline_keyboard: [
-                                    [
-                                        { text: "🚨Remind Me", callback_data: `remind_me:${msg.id}:dateline:${datelineDate}` },
-                                    ],
-                                ],
-                            },
-                        }
-                    );
+                await sendTelegramMessage(userTokens.user_id, replyUserMessage);
 
-                    console.log(
-                        `✅ Sent Telegram for message ${msg.id} (override=${booleanOverride}, score=${score})`
-                    );
-                }
             } catch (err) {
                 console.error("❌ Failed to process message", {
                     messageId: msg.id,
                     error: err,
                 });
+
+                // ==================================================
+                // STEP 6: Mark failure (VERY IMPORTANT)
+                // ==================================================
+                if (responseRowId) {
+                    await supabase
+                        .from("email_ai_responses")
+                        .update({
+                            message_status: "failed",
+                            updated_at: new Date().toISOString(),
+                        })
+                        .eq("id", responseRowId);
+                }
             }
         }
     }
 }
+
+
 
 function extractEmailSignals(email: any) {
     return {
@@ -266,21 +274,23 @@ export async function ensureValidWatch({
     supabase: any;
     userTokens: any;
 }) {
+    const hasAccess = await canAccessPlan(userTokens.user_id, "free_trial");
+    if (!hasAccess) {
+        console.warn("🚫 Watch renewal blocked — subscription inactive", {
+            userId: userTokens.user_id,
+        });
+        return userTokens.watch_history_id;
+    }
+
     const now = Date.now();
     const expiration = Number(userTokens.watch_expiration || 0);
 
     const isExpired = expiration <= now;
-    const isExpiringSoon = expiration - now <= WATCH_RENEW_BUFFER_MS;
+    const isExpiringSoon = expiration - now <= 24 * 60 * 60 * 1000;
 
     if (!isExpired && !isExpiringSoon) {
-        console.log('⏰ Watch still valid')
         return userTokens.watch_history_id;
     }
-
-    console.log("⏰ Watch expired or expiring — renewing", {
-        userId: userTokens.user_id,
-        expiration,
-    });
 
     try {
         const res = await gmail.users.watch({
@@ -302,34 +312,8 @@ export async function ensureValidWatch({
             })
             .eq("email_address", userTokens.email_address);
 
-        console.log("✅ Gmail watch renewed", {
-            userId: userTokens.user_id,
-            newExpiration,
-        });
-
         return historyId;
-    } catch (err: any) {
-        const data = err?.response?.data;
-
-        console.error("❌ Failed to renew watch", {
-            userId: userTokens.user_id,
-            data,
-        });
-
-        // Refresh token revoked / invalid → hard stop
-        if (
-            data?.error === "invalid_grant" ||
-            data?.error_description?.includes("Invalid Credentials")
-        ) {
-            await supabase
-                .from("user_gmail_tokens")
-                .update({
-                    status: "reauth_required",
-                    updated_at: new Date().toISOString(),
-                })
-                .eq("email_address", userTokens.email_address);
-        }
-
+    } catch (err) {
         throw err;
     }
 }

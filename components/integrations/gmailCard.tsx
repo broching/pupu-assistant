@@ -259,8 +259,10 @@ export default function GmailCard({ telegramConnected = true }: GmailCardProps) 
                       {connections.map((conn, index) => (
                         <div
                           key={conn.id}
-                          className="grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0"
+                          className={`grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0
+                         ${!isActiveSubscription ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}`}
                         >
+
                           <div className="col-span-3 font-medium">
                             {conn.connection_name || `Connection ${index + 1}`}
                           </div>

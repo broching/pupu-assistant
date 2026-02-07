@@ -1,16 +1,20 @@
 // app/api/gmail/webhook/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
-import { google } from "googleapis";
 import { createClient } from "@/lib/supabase/server";
-import { parseGmailMessage } from "@/lib/gmail/parseGmail";
-import { formatEmailMessage } from "@/lib/telegram/formatTelegramMessage";
-import { sendTelegramMessage } from "@/lib/telegram/sendTelegramMessage";
-import { createOAuthClient, ensureValidWatch, fetchGmailHistory, getUserFilter, getUserTokens, processHistories } from "@/lib/gmail/webhookHelper";
+import {
+    createOAuthClient,
+    ensureValidWatch,
+    fetchGmailHistory,
+    getUserFilter,
+    getUserTokens,
+    processHistories,
+} from "@/lib/gmail/webhookHelper";
+import { canAccessPlan } from "@/lib/subscription/server";
 
 /* ------------------------------
-   Helper parse Pub Sub
+   Helper: parse Pub/Sub payload
 ------------------------------ */
-
 async function parsePubSubPayload(req: NextRequest) {
     const body = await req.json();
     const message = body.message?.data;
@@ -27,25 +31,42 @@ async function parsePubSubPayload(req: NextRequest) {
     }
 }
 
-
 /* ------------------------------
    Webhook Handler
 ------------------------------ */
-
 export async function POST(req: NextRequest) {
     try {
-        // 1️⃣ Parse the Pub/Sub payload
+        // 1️⃣ Parse Pub/Sub payload
         const data = await parsePubSubPayload(req);
         console.log("📩 Gmail push notification received", data);
 
-        // 2️⃣ Get Supabase client and user tokens
+        // 2️⃣ Create Supabase service client
         const supabase = await createClient({ useServiceRole: true });
+
+        // 3️⃣ Resolve user tokens
         const userTokens = await getUserTokens(supabase, data.emailAddress);
 
-        // 3️⃣ Create OAuth2 Gmail client
+        // 4️⃣ 🔐 PAYMENT GATE — free_trial minimum
+        const hasAccess = await canAccessPlan(userTokens.user_id, "free_trial");
+
+        if (!hasAccess) {
+            console.warn("🚫 Subscription access denied", {
+                userId: userTokens.user_id,
+                email: userTokens.email_address,
+            });
+
+            // IMPORTANT: return 200 so Pub/Sub does NOT retry
+            return NextResponse.json({
+                success: false,
+                reason: "subscription_inactive",
+                status: 200
+            });
+        }
+
+        // 5️⃣ Create OAuth Gmail client
         const gmail = createOAuthClient(userTokens, supabase);
 
-        // 4️⃣ Ensure the watch is valid (7-day renewal)
+        // 6️⃣ Ensure Gmail watch is valid
         const watchHistoryId = await ensureValidWatch({
             gmail,
             supabase,
@@ -53,14 +74,15 @@ export async function POST(req: NextRequest) {
         });
         userTokens.watch_history_id = watchHistoryId;
 
-        // 5️⃣ Fetch Gmail history
+        // 7️⃣ Fetch Gmail history
         const historyRes = await fetchGmailHistory(gmail, userTokens, supabase);
         const histories = historyRes.data.history ?? [];
+
         console.log(`📬 ${histories.length} new message(s)`, {
             userId: userTokens.user_id,
         });
 
-        // 6️⃣ Update watch_history_id
+        // 8️⃣ Persist latest history ID
         if (historyRes.data.historyId) {
             await supabase
                 .from("user_gmail_tokens")
@@ -71,18 +93,49 @@ export async function POST(req: NextRequest) {
                 .eq("email_address", userTokens.email_address);
         }
 
-        // 7️⃣ Fetch filters for this user and email
-        let filter = await getUserFilter(userTokens.user_id, userTokens.filter_id);
+        // 9️⃣ Load user filter (or default)
+        let filter = await getUserFilter(
+            userTokens.user_id,
+            userTokens.filter_id
+        );
 
         if (!filter) {
             console.log("ℹ️ Using default filter for user", userTokens.user_id);
-            filter = { "filter_name": "Default filter", "notification_mode": "balanced", "watch_tags": ["invoice", "payment", "subscription", "receipt", "approval", "deadline", "contract", "meeting", "security", "verification", "promotion", "deal"], "ignore_tags": [], "enable_first_time_sender_alert": true, "enable_thread_reply_alert": true, "enable_deadline_alert": true, "enable_subscription_payment_alert": true}
+            filter = {
+                filter_name: "Default filter",
+                notification_mode: "balanced",
+                watch_tags: [
+                    "invoice",
+                    "payment",
+                    "subscription",
+                    "receipt",
+                    "approval",
+                    "deadline",
+                    "contract",
+                    "meeting",
+                    "security",
+                    "verification",
+                    "promotion",
+                    "deal",
+                ],
+                ignore_tags: [],
+                enable_first_time_sender_alert: true,
+                enable_thread_reply_alert: true,
+                enable_deadline_alert: true,
+                enable_subscription_payment_alert: true,
+            };
         } else {
             console.log("✅ Loaded filter", filter.filter_name);
         }
 
-        // 8️⃣ Process histories with the filters
-        await processHistories(supabase, gmail, histories, userTokens, filter);
+        // 🔟 Process histories (AI + DB + Telegram)
+        await processHistories(
+            supabase,
+            gmail,
+            histories,
+            userTokens,
+            filter
+        );
 
         return NextResponse.json({
             success: true,
@@ -90,9 +143,11 @@ export async function POST(req: NextRequest) {
         });
     } catch (err: any) {
         console.error("❌ Webhook fatal error", err);
+
+        // Still return 200 to avoid Pub/Sub retries
         return NextResponse.json(
             { error: err.message || "Server error" },
-            { status: 500 }
+            { status: 200 }
         );
     }
 }

@@ -9,7 +9,7 @@ export async function analyzeEmailWithAI(params: {
   filter: Record<string, unknown>;
 }): Promise<EmailAnalysisResult> {
   const ai = new GeminiAI();
-
+  console.log('ai reached')
   const prompt = buildEmailAnalysisPrompt({
     emailSender: params.sender,
     emailSubject: params.subject,
