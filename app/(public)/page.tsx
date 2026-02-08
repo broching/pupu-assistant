@@ -32,7 +32,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
+      <section id="features" className="py-24 px-6 max-w-7xl mx-auto">
         <h2 className="text-3xl font-bold text-center mb-12">Why Choose Gmail Assistant</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
 
@@ -106,7 +106,7 @@ export default function Home() {
 
 
       {/* Pricing & QnA */}
-      <section className="mt-5 mb-20">
+      <section id="qna" className="mt-5 mb-20">
         <PricingQnA />
       </section>
 
