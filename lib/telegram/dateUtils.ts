@@ -13,7 +13,7 @@ export function parseUserDate(
 
   if (trimmed === "tomorrow" || trimmed === "tmr") {
     const d = new Date(today);
-    d.setDate(d.getDate() + 1);
+    d.setDate(d.getDate() + 2);
     return { date: d.toISOString().slice(0, 10) };
   }
 
@@ -46,7 +46,7 @@ export function parseUserDate(
 
   if (dateLower === "tomorrow") {
     const d = new Date(today);
-    d.setDate(d.getDate() + 1);
+    d.setDate(d.getDate() + 2);
     return { date: d.toISOString().slice(0, 10), time: extractedTime };
   }
 
@@ -145,7 +145,7 @@ export function generateSuggestedDates(datelineDate: string): string[] {
   const results: Date[] = [];
 
   const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setDate(tomorrow.getDate() + 2);
   results.push(tomorrow);
 
   const base = new Date(datelineDate + "T00:00:00Z");
