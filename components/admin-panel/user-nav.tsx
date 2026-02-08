@@ -29,7 +29,7 @@ export function UserNav() {
   const avatarSrc =
     user?.user_metadata?.avatar_url ||
     user?.user_metadata?.picture ||
-    "";
+    null;
 
   console.log(avatarSrc)
   return (

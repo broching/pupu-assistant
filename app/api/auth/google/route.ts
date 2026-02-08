@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { oauth2Client, GMAIL_SCOPES } from "@/lib/google";
+import { oauth2Client, SSO_SCOPES } from "@/lib/google";
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",
-      scope: GMAIL_SCOPES,
+      scope: SSO_SCOPES,
       state: Buffer.from(state).toString("base64"), // encode safely
     });
 

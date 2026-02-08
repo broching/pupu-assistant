@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  console.log('reached sso')
   if (!code) {
     console.log('no code')
     return NextResponse.redirect(new URL("/auth/login", request.url));

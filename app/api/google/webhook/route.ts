@@ -8,28 +8,11 @@ import {
     fetchGmailHistory,
     getUserFilter,
     getUserTokens,
+    parsePubSubPayload,
     processHistories,
 } from "@/lib/gmail/webhookHelper";
 import { canAccessPlan } from "@/lib/subscription/server";
 
-/* ------------------------------
-   Helper: parse Pub/Sub payload
------------------------------- */
-async function parsePubSubPayload(req: NextRequest) {
-    const body = await req.json();
-    const message = body.message?.data;
-
-    if (!message) {
-        throw new Error("No Pub/Sub message");
-    }
-
-    try {
-        const buff = Buffer.from(message, "base64");
-        return JSON.parse(buff.toString("utf-8"));
-    } catch {
-        throw new Error("Invalid Pub/Sub message format");
-    }
-}
 
 /* ------------------------------
    Webhook Handler

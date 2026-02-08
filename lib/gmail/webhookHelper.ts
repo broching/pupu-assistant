@@ -5,6 +5,26 @@ import { sendTelegramMessage } from "@/lib/telegram/sendTelegramMessage";
 import { analyzeEmailWithAI } from "./analyzeEmailWithAi";
 import { canAccessPlan } from "../subscription/server";
 import { decrypt } from "../encryption/helper";
+import { NextRequest } from "next/server";
+
+/* ------------------------------
+   Helper: parse Pub/Sub payload
+------------------------------ */
+export async function parsePubSubPayload(req: NextRequest) {
+    const body = await req.json();
+    const message = body.message?.data;
+
+    if (!message) {
+        throw new Error("No Pub/Sub message");
+    }
+
+    try {
+        const buff = Buffer.from(message, "base64");
+        return JSON.parse(buff.toString("utf-8"));
+    } catch {
+        throw new Error("Invalid Pub/Sub message format");
+    }
+}
 
 export async function getUserTokens(supabase: Awaited<ReturnType<typeof createClient>>, emailAddress: string) {
     const { data, error } = await supabase
