@@ -56,3 +56,17 @@ export function decrypt(encrypted: string): string {
   const decrypted = Buffer.concat([decipher.update(encryptedText), decipher.final()]);
   return decrypted.toString("utf8");
 }
+
+
+function isEncrypted(value: string) {
+  return typeof value === "string" && value.split(":").length === 3;
+}
+
+export function safeDecrypt(value: string): string {
+  if (!value) return "";
+  if (!isEncrypted(value)) {
+    // already plain text (legacy data)
+    return value;
+  }
+  return decrypt(value);
+}

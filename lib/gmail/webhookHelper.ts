@@ -4,7 +4,7 @@ import { parseGmailMessage } from "@/lib/gmail/parseGmail";
 import { sendTelegramMessage } from "@/lib/telegram/sendTelegramMessage";
 import { analyzeEmailWithAI } from "./analyzeEmailWithAi";
 import { canAccessPlan } from "../subscription/server";
-import { decrypt } from "../encryption/helper";
+import { decrypt, safeDecrypt } from "../encryption/helper";
 import { NextRequest } from "next/server";
 
 /* ------------------------------
@@ -37,8 +37,8 @@ export async function getUserTokens(supabase: Awaited<ReturnType<typeof createCl
         throw new Error("User tokens not found");
     }
     console.log(data)
-    data.access_token = decrypt(data.access_token)
-    data.refresh_token = decrypt(data.refresh_token)
+    data.access_token = safeDecrypt(data.access_token)
+    data.refresh_token = safeDecrypt(data.refresh_token)
     return data;
 }
 
