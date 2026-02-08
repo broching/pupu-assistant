@@ -19,13 +19,8 @@ function PublicFooter() {
                                 </h3>
                                 <ul className="space-y-3">
                                     {[
-                                        ["Agents", "/en-US/agent"],
-                                        ["Enterprise", "/en-US/enterprise"],
-                                        ["Code Review", "/en-US/bugbot"],
-                                        ["Tab", "/en-US/tab"],
-                                        ["CLI", "/en-US/cli"],
-                                        ["Cloud Agents", "/agents"],
-                                        ["Pricing", "/en-US/pricing"],
+                                        ["About", "/agents"],
+                                        ["Pricing", "/pricing"],
                                     ].map(([label, href]) => (
                                         <li key={label}>
                                             <a
@@ -46,8 +41,6 @@ function PublicFooter() {
                                 </h3>
                                 <ul className="space-y-3">
                                     {[
-                                        ["Download", "/en-US/download"],
-                                        ["Changelog", "/en-US/changelog"],
                                         ["Docs", "/docs"],
                                     ].map(([label, href]) => (
                                         <li key={label}>
@@ -59,63 +52,10 @@ function PublicFooter() {
                                             </a>
                                         </li>
                                     ))}
-                                    <li>
-                                        <a
-                                            href="https://forum.cursor.com/"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-theme-text-sec hover:text-theme-text transition-colors"
-                                        >
-                                            Forum ↗
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a
-                                            href="https://status.cursor.com/"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-theme-text-sec hover:text-theme-text transition-colors"
-                                        >
-                                            Status ↗
-                                        </a>
-                                    </li>
                                 </ul>
                             </div>
 
-                            {/* Company */}
-                            <div>
-                                <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-theme-text-sec">
-                                    Company
-                                </h3>
-                                <ul className="space-y-3">
-                                    {[
-                                        ["Careers", "/en-US/careers"],
-                                        ["Blog", "/en-US/blog"],
-                                        ["Community", "/en-US/community"],
-                                        ["Students", "/en-US/students"],
-                                        ["Brand", "/en-US/brand"],
-                                    ].map(([label, href]) => (
-                                        <li key={label}>
-                                            <a
-                                                href={href}
-                                                className="text-sm text-theme-text-sec hover:text-theme-text transition-colors"
-                                            >
-                                                {label}
-                                            </a>
-                                        </li>
-                                    ))}
-                                    <li>
-                                        <a
-                                            href="https://anysphere.inc/"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-theme-text-sec hover:text-theme-text transition-colors"
-                                        >
-                                            Anysphere ↗
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
+                            
 
                             {/* Legal */}
                             <div>
@@ -176,17 +116,17 @@ function PublicFooter() {
                             <span>
                                 © 2026{" "}
                                 <a
-                                    href="https://anysphere.inc"
+                                    href=""
                                     className="hover:text-theme-text transition-colors"
                                 >
-                                    Anysphere, Inc.
+                                    PuPuAI, Inc.
                                 </a>
                             </span>
                             <a
-                                href="/en-US/security"
+                                href="/security"
                                 className="hover:text-theme-text transition-colors"
                             >
-                                🛡 SOC 2 Certified
+                                🛡 Security Certified
                             </a>
                         </div>
 

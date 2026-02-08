@@ -157,7 +157,7 @@ export async function handleRemindSet(
     return;
   }
 
-  const webhookUrl = `${getAppBaseUrl()}/api/qstash/reminder-webhook`;
+  const webhookUrl = `https://kolten-precloacal-tempie.ngrok-free.dev//api/qstash/reminder-webhook`;
   try {
     const qstashMessageId = await scheduleReminderViaQStash(
       reminder.id,

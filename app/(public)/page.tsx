@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Mail, MessageCircle, CheckCircle } from "lucide-react";
 import PricingQnA from "@/components/qna/PricingQnA";
 
 export default function Home() {
@@ -11,72 +12,102 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative flex flex-col items-center justify-center text-center py-24 px-6 bg-gradient-to-br from-muted/70 to-muted/10">
-        <h1 className="text-4xl sm:text-5xl font-bold max-w-3xl mb-6">
-          Build AI-powered apps faster than ever
+        <h1 className="text-4xl sm:text-5xl font-bold max-w-3xl mb-6 mt-10">
+          Your Gmail, Smarter and Faster
         </h1>
         <p className="text-lg sm:text-xl max-w-2xl mb-8">
-          Start building smarter, faster, and more efficiently with modern tools and integrations.
+          Get real-time notifications for important emails without leaving your messaging apps. Reduce inbox noise, stay focused, and never miss what matters.
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
           <Button size="lg">Get Started</Button>
           <Button variant="outline" size="lg">Learn More</Button>
         </div>
         <img
-          src="https://placehold.co/600x400"
-          alt="Hero Image"
-          width={600}
-          height={400}
+          src="/hero.png"
+          alt="Gmail Assistant"
+          width={1000}
+          height={500}
           className="mt-12 rounded-xl shadow-lg"
         />
       </section>
 
       {/* Features Section */}
       <section className="py-24 px-6 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-12">Features</h2>
+        <h2 className="text-3xl font-bold text-center mb-12">Why Choose Gmail Assistant</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
 
           <Card className="bg-gradient-to-br from-muted/70 to-muted/10">
             <CardHeader>
-              <CardTitle>Fast Integration</CardTitle>
-              <CardDescription>Connect your stack in minutes and start automating tasks seamlessly.</CardDescription>
+              <CardTitle>Real-Time Alerts</CardTitle>
+              <CardDescription>Receive instant notifications when important emails arrive—via Telegram, WhatsApp, or other messaging apps.</CardDescription>
             </CardHeader>
             <CardContent>
-              <img src="https://placehold.co/400x250" alt="Feature 1" width={400} height={250} className="rounded-lg" />
+              <img src="/feature1.jpg" alt="Real-Time Alerts" width={400} height={250} className="rounded-lg" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-muted/70 to-muted/10">
             <CardHeader>
-              <CardTitle>Intelligent Automation</CardTitle>
-              <CardDescription>Use AI-powered tools to optimize your workflows and boost productivity.</CardDescription>
+              <CardTitle>Reduce Inbox Noise</CardTitle>
+              <CardDescription>Focus on what matters most. AI-powered filtering highlights important emails and suppresses distractions.</CardDescription>
             </CardHeader>
             <CardContent>
-              <img src="https://placehold.co/400x250" alt="Feature 2" width={400} height={250} className="rounded-lg" />
+              <img src="/feature2.jpg" alt="Reduce Inbox Noise" width={400} height={250} className="rounded-lg" />
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-to-br from-muted/70 to-muted/10">
             <CardHeader>
-              <CardTitle>Secure & Reliable</CardTitle>
-              <CardDescription>Your data is protected with industry-standard security protocols.</CardDescription>
+              <CardTitle>Secure & Private</CardTitle>
+              <CardDescription>Read-only Gmail access. We don't store your actual email data and Your data stays safe with OAuth 2.0 and strict Supabase RLS rules.</CardDescription>
             </CardHeader>
             <CardContent>
-              <img src="https://placehold.co/400x250" alt="Feature 3" width={400} height={250} className="rounded-lg" />
+              <img src="/feature3.jpg" alt="Secure & Private" width={400} height={250} className="rounded-lg" />
             </CardContent>
           </Card>
 
         </div>
       </section>
 
-      {/* Call-to-Action Section */}
-      <section className="bg-gradient-to-br from-muted/70 to-muted/10 py-24 px-6 text-center">
-        <h2 className="text-3xl font-bold mb-6">Ready to start?</h2>
-        <p className="text-lg mb-8">Sign up now and start building smarter apps today.</p>
-        <Button size="lg">Sign Up</Button>
+      {/* How It Works Section */}
+      <section className="py-24 px-6 bg-gradient-to-br from-muted/70 to-muted/10 text-center">
+        <h2 className="text-3xl font-bold mb-12">How It Works</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 max-w-5xl mx-auto">
+
+          {/* Step 1 */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-blue-600 text-white">
+              <Mail className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold mb-2">Connect Gmail</h3>
+            <p>Securely connect one or more Gmail accounts via Google OAuth.</p>
+          </div>
+
+          {/* Step 2 */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-green-600 text-white">
+              <MessageCircle className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold mb-2">Receive Notifications</h3>
+            <p>Get real-time alerts for important emails on your preferred messaging app.</p>
+          </div>
+
+          {/* Step 3 */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-purple-600 text-white">
+              <CheckCircle className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold mb-2">Stay Focused</h3>
+            <p>Filter out noise, prioritize what matters, and manage Gmail connections anytime.</p>
+          </div>
+
+        </div>
       </section>
 
-      <section className="mt-5" style={{marginBottom:"5rem"}}>
-        <PricingQnA></PricingQnA>
+
+      {/* Pricing & QnA */}
+      <section className="mt-5 mb-20">
+        <PricingQnA />
       </section>
 
     </main>

@@ -27,7 +27,7 @@ export function SheetMenu() {
             asChild
           >
             <Link href="/dashboard" className="flex items-center gap-2">
-              <PanelsTopLeft className="w-6 h-6 mr-1" />
+              <img src="panda.png" width={40} height={40} alt="" />
               <SheetTitle className="font-bold text-lg">PuPu</SheetTitle>
             </Link>
           </Button>

@@ -6,7 +6,7 @@ export function Hero() {
   return (
     <div className="flex flex-col gap-16 items-center">
       <div className="flex gap-1 justify-center items-center">
-        <Image alt="Logo" width={80} height={80} src="/icons8-bear-80.png" />
+        <Image alt="Logo" width={80} height={80} src="/panda.png" />
       </div>
       <h1 className="sr-only">AI Bot For Property Agents</h1>
       <p className="text-3xl lg:text-4xl !leading-tight mx-auto max-w-xl text-center">

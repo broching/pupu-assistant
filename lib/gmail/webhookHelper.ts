@@ -36,6 +36,7 @@ export async function getUserTokens(supabase: Awaited<ReturnType<typeof createCl
     if (error || !data) {
         throw new Error("User tokens not found");
     }
+    console.log(data)
     data.access_token = decrypt(data.access_token)
     data.refresh_token = decrypt(data.refresh_token)
     return data;
@@ -241,11 +242,30 @@ export async function processHistories(
                 // ==================================================
                 // STEP 5: Telegram
                 // ==================================================
-                const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
-                const replyUserMessage =
-                    `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
+                if (shouldSendTelegram) {
+                    const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
+                    const replyUserMessage =
+                        `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
+                    const datelineDate = analysis.emailAnalysis.datelineDate;
 
-                await sendTelegramMessage(userTokens.user_id, replyUserMessage);
+                    await sendTelegramMessage(
+                        userTokens.user_id,
+                        replyUserMessage,
+                        {
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        { text: "🚨Remind Me", callback_data: `remind_me:${msg.id}:dateline:${datelineDate}` },
+                                    ],
+                                ],
+                            },
+                        }
+                    );
+
+                    console.log(
+                        `✅ Sent Telegram for message ${msg.id} (override=${booleanOverride}, score=${score})`
+                    );
+                }
 
             } catch (err) {
                 console.error("❌ Failed to process message", {

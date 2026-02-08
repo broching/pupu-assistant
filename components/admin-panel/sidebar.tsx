@@ -35,7 +35,7 @@ export function Sidebar() {
           asChild
         >
           <Link href="/" className="flex items-center gap-2">
-            <img src="icons8-bear-40.png" alt="" />
+            <img src="panda.png" width={40} height={40} alt="" />
             <h1
               className={cn(
                 "font-bold text-lg whitespace-nowrap transition-[transform,opacity,display] ease-in-out duration-300",

@@ -25,7 +25,7 @@ function Header() {
                 {/* ---------------- Left: Logo + PuPu ---------------- */}
                 <div className="flex items-center gap-2 font-semibold">
                     <Link href="/" className="flex items-center gap-1">
-                        <Image alt="Logo" width={40} height={40} src="/icons8-bear-80.png" />
+                        <Image alt="Logo" width={40} height={40} src="/panda.png" />
                         <span className="text-lg">PuPu</span>
                     </Link>
 
@@ -66,7 +66,7 @@ function Header() {
                             {/* Drawer Header */}
                             <SheetClose asChild>
                                 <Link className='flex items-center gap-1 mb-4' href="/">
-                                    <Image alt="Logo" width={40} height={40} src="/icons8-bear-80.png" />
+                                    <Image alt="Logo" width={40} height={40} src="/panda.png" />
                                     <div className="text-lg font-semibold">PuPu</div>
                                 </Link>
                             </SheetClose>

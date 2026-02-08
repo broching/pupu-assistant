@@ -23,7 +23,7 @@ export default function ProtectedHeader() {
       <div className="flex items-center gap-2">
         <Link href="/" className="flex items-center gap-2">
           <Image
-            src="/icons8-bear-80.png"
+            src="/panda.png"
             alt="Pupu Logo"
             width={40}
             height={40}
