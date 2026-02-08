@@ -4,7 +4,7 @@ import { Accordion, AccordionItem, AccordionContent, AccordionTrigger } from '..
 
 function PricingQnA() {
   return (
-    <section className="mt-20 max-w-7xl mx-auto px-4">
+    <section className="mt-20 max-w-7xl mx-auto px-4" style={{width:"96%"}}>
       {/* Heading */}
       <h2 className="mb-12 text-center text-4xl font-bold whitespace-nowrap">
         Questions & Answers

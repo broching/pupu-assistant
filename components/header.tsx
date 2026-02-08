@@ -12,15 +12,23 @@ import { useUser } from "@/app/context/userContext";
 import { Menu } from "lucide-react";
 import { ModeToggle } from "./mode-toggle";
 import { DialogTitle } from "@radix-ui/react-dialog";
+import { useRouter } from "next/navigation";
 
 function Header() {
     const { user, session } = useUser();
+    const router = useRouter()
 
     // Scroll to a section by id
     const handleScroll = (id: string) => {
         const el = document.getElementById(id);
         if (el) {
             el.scrollIntoView({ behavior: "smooth" });
+        }
+        else {
+            router.push('/')
+            const newEl = document.getElementById(id);
+            console.log("newEL",newEl)
+            newEl?.scrollIntoView({ behavior: "smooth" })
         }
     };
 
@@ -50,7 +58,7 @@ function Header() {
                 <div className="hidden md:flex gap-8 items-center font-semibold">
                     <button onClick={() => handleScroll("features")}>Features</button>
                     <button onClick={() => handleScroll("qna")}>FAQ</button>
-                    <button onClick={() => handleScroll("qna")}>Pricing</button>
+                    <Link href="/pricing">Pricing</Link>
                 </div>
 
                 {/* Right: Theme + Auth */}
