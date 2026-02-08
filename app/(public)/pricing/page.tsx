@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Card,
@@ -98,21 +97,11 @@ function TrialCountdown({ trialEnd }: { trialEnd: string }) {
 }
 
 export default function PricingPage() {
-  const searchParams = useSearchParams();
   const { user, session } = useUser();
   const { subscription } = useSubscription(session?.access_token);
 
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get("success") === "1") {
-      toast.success("Subscription started. Thank you!");
-    }
-    if (searchParams.get("canceled") === "1") {
-      toast.info("Checkout canceled.");
-    }
-  }, [searchParams]);
 
   /* ----------------------------------------
      Subscription state logic (CORRECT)

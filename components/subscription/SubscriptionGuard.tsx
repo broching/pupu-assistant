@@ -21,9 +21,7 @@ export function SubscriptionGuard({
   children,
 }: SubscriptionGuardProps) {
   const { session } = useUser();
-  const { subscription, loading, hasAccess, canAccessPlan } = useSubscription(
-    () => session?.access_token ?? undefined
-  );
+  const { subscription, loading, hasAccess, canAccessPlan } = useSubscription(session?.access_token);
 
   if (loading) return null;
   if (!session) return <>{fallback}</>;

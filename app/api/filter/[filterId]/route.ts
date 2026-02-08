@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 export async function GET(
     req: Request,
-    { params }: { params: { filterId: string } }
+    { params }: { params: any }
 ) {
     const token = req.headers.get("Authorization")?.replace("Bearer ", "");
 
@@ -125,55 +125,55 @@ export async function PUT(
 }
 
 export async function DELETE(
-  req: Request,
-  { params }: { params: Promise<{ filterId: string }> }
+    req: Request,
+    { params }: { params: Promise<{ filterId: string }> }
 ) {
-  const token = req.headers.get("Authorization")?.replace("Bearer ", "");
+    const token = req.headers.get("Authorization")?.replace("Bearer ", "");
 
-  if (!token) {
-    return NextResponse.json(
-      { error: "Authorization token required" },
-      { status: 401 }
-    );
-  }
+    if (!token) {
+        return NextResponse.json(
+            { error: "Authorization token required" },
+            { status: 401 }
+        );
+    }
 
-  const supabase = await createClientWithToken(token);
+    const supabase = await createClientWithToken(token);
 
-  // 🔐 Get authenticated user
-  const {
-    data: { user },
-    error: authError
-  } = await supabase.auth.getUser();
+    // 🔐 Get authenticated user
+    const {
+        data: { user },
+        error: authError
+    } = await supabase.auth.getUser();
 
-  if (authError || !user) {
-    return NextResponse.json(
-      { error: "Invalid or expired token" },
-      { status: 401 }
-    );
-  }
+    if (authError || !user) {
+        return NextResponse.json(
+            { error: "Invalid or expired token" },
+            { status: 401 }
+        );
+    }
 
-  // ✅ Await params (App Router requirement)
-  const { filterId } = await params;
+    // ✅ Await params (App Router requirement)
+    const { filterId } = await params;
 
-  if (!filterId) {
-    return NextResponse.json(
-      { error: "filterId is required" },
-      { status: 400 }
-    );
-  }
+    if (!filterId) {
+        return NextResponse.json(
+            { error: "filterId is required" },
+            { status: 400 }
+        );
+    }
 
-  const { error } = await supabase
-    .from("filters")
-    .delete()
-    .eq("id", filterId)
-    .eq("user_id", user.id); // 🔒 ownership check
+    const { error } = await supabase
+        .from("filters")
+        .delete()
+        .eq("id", filterId)
+        .eq("user_id", user.id); // 🔒 ownership check
 
-  if (error) {
-    return NextResponse.json(
-      { error: "Failed to delete filter" },
-      { status: 400 }
-    );
-  }
+    if (error) {
+        return NextResponse.json(
+            { error: "Failed to delete filter" },
+            { status: 400 }
+        );
+    }
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
 }
