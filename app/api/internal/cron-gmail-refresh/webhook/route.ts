@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
             nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY!,
         });
 
-        const expectedUrl = "https://kolten-precloacal-tempie.ngrok-free.dev/api/internal/cron-gmail-refresh/webhook";
+        const expectedUrl = `${process.env.NEXT_PUBLIC_APP_URL}api/internal/cron-gmail-refresh/webhook`;
         const isValid = await receiver.verify({ body, signature, url: expectedUrl });
         if (!isValid) {
             console.error("❌ Invalid QStash signature");
