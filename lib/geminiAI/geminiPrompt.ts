@@ -36,8 +36,15 @@ The JSON MUST strictly follow this schema:
 {
   "messageScore": number (0-100),
   "keywordsFlagged": string[],
-  "replyMessage": string
-  "datelineDate": string
+  "replyMessage": string,
+  "datelineDate": string,
+  "calendarEvent": {
+      "summary": string,        // REQUIRED, event title
+      "start": string,          // REQUIRED, ISO 8601
+      "end": string,            // REQUIRED, ISO 8601
+      "location"?: string,      // OPTIONAL
+      "description": string,    // REQUIRED, event description
+  } | null
 }
 
 datelineDate RULES (STRICT – NO GUESSING):
@@ -50,7 +57,7 @@ Extraction rules:
 2. The datelineDate MUST NOT be inferred, estimated, assumed, or invented.
 3. The datelineDate MUST correspond to an explicitly mentioned date in the email.
 4. If multiple dates are mentioned, choose the one that is clearly indicated as the deadline, dateline, due date, or cutoff.
-5. If NO explicit dateline is present, return null for datelineDate.
+5. If no explicit dateline exists, return null for datelineDate and calendarEvent.
 
 Validation rules:
 - The datelineDate MUST be formatted as "YYYY-MM-DD".
@@ -62,6 +69,16 @@ CRITICAL:
 - NEVER make up a datelineDate.
 - NEVER adjust a date to make it valid.
 
+
+Calendar Event Rules:
+1. If a dateline or deadline is explicitly mentioned in the email, create a calendarEvent object using that date.
+   - Use datelineDate for the start of the event.
+   - Assume end time is 1 hour after start.
+2. summary is REQUIRED. If the email has a subject or context indicating the event title, use it.
+3. start and end are REQUIRED. They must be valid ISO 8601 strings.
+4. location is OPTIONAL. Include if information is present, otherwise omit or set to null.
+5. If no explicit dateline is present, set calendarEvent to null.
+6. Do NOT invent dates or events. Only create a calendarEvent if a dateline is explicitly mentioned.
 
 replyMessage FORMAT (MANDATORY):
 The replyMessage MUST follow this exact structure, in this exact order,
