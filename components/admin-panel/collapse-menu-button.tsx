@@ -27,6 +27,7 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { usePathname } from "next/navigation";
+import { IconType } from "react-icons/lib";
 
 type Submenu = {
   href: string;
@@ -35,7 +36,7 @@ type Submenu = {
 };
 
 interface CollapseMenuButtonProps {
-  icon: LucideIcon;
+  icon: LucideIcon | IconType
   label: string;
   active: boolean;
   submenus: Submenu[];
