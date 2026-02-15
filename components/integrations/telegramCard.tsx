@@ -25,6 +25,7 @@ import {
 import { useUser } from "@/app/context/userContext";
 import { useApiClient } from "@/app/utils/axiosClient";
 import { FaTelegram, FaTelegramPlane } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
 
 type TelegramStatus = {
@@ -66,15 +67,13 @@ export default function LinkTelegramCard({
 
     const { session, user } = useUser();
     const apiClient = useApiClient();
+    const router = useRouter();
 
     return (
         <div className="max-w-7xl mx-auto py-12 px-6 flex justify-center">
             <Card className="w-full max-w-6xl bg-gradient-to-br from-muted/40 to-transparent">
                 <CardHeader className="flex flex-row items-start justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
-                            1
-                        </div>
 
                         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
                             <FaTelegramPlane className="h-4 w-4 text-muted-foreground" />
@@ -90,17 +89,6 @@ export default function LinkTelegramCard({
                     </div>
 
 
-                    {/* Chevron */}
-                    <button
-                        onClick={() => setCollapsed((v) => !v)}
-                        className="text-muted-foreground hover:text-foreground transition"
-                    >
-                        {collapsed ? (
-                            <ChevronDown className="h-5 w-5" />
-                        ) : (
-                            <ChevronUp className="h-5 w-5" />
-                        )}
-                    </button>
                 </CardHeader>
 
                 {!collapsed && (
@@ -210,6 +198,66 @@ export default function LinkTelegramCard({
                         <p className="text-xs text-muted-foreground text-center">
                             Opens Telegram • Starts bot automatically
                         </p>
+                        {/* Onboarding Guidance Section */}
+                        <div className="pt-6 border-t border-border space-y-4">
+                            {/* Block Gmail if NOT connected */}
+                            {!telegramStatus.connected && !loading && (
+                                <>
+                                    <Alert variant="destructive">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <AlertTitle>Telegram Required</AlertTitle>
+                                        <AlertDescription>
+                                            You cannot add Gmail connections until Telegram
+                                            is linked. Please connect Telegram first.
+                                        </AlertDescription>
+                                    </Alert>
+
+                                    <Button
+                                        className="w-full"
+                                        variant="secondary"
+                                        disabled
+                                    >
+                                        Connect Telegram to Enable Gmail Setup
+                                    </Button>
+                                </>
+                            )}
+
+                            {/* If Connected → Next Step */}
+                            {telegramStatus.connected && (
+                                <div className="rounded-lg border border-black/10 bg-muted/30 p-5 space-y-4">
+                                    <CardTitle className="text-lg">
+                                        Next Step: Connect Your Google Calendar
+                                    </CardTitle>
+
+                                    <div className="text-sm text-muted-foreground space-y-2">
+                                        <p>
+                                            Connect your Google Calendar so we can automatically create events
+                                            from important emails that contain deadlines, meetings, or time-sensitive tasks.
+                                        </p>
+
+                                        <ul className="list-disc pl-5 space-y-1">
+                                            <li>Detect important emails with dates or deadlines</li>
+                                            <li>Automatically create calendar events for you</li>
+                                            <li>Keep your schedule organized without manual copying</li>
+                                        </ul>
+
+                                        <p>
+                                            When an important email includes a date or deadline, Pupu can
+                                            instantly add it to your Google Calendar — saving you time and
+                                            ensuring you never miss critical events.
+                                        </p>
+                                    </div>
+
+                                    <Button
+                                        style={{ width: "15rem" }}
+                                        onClick={() => router.push("/calendar")}
+                                    >
+                                        Continue to Calendar Setup
+                                    </Button>
+                                </div>
+                            )}
+
+                        </div>
                     </CardContent>
                 )}
             </Card>

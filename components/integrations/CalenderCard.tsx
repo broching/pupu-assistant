@@ -120,9 +120,6 @@ export default function CalendarCard() {
         <Card className="w-full max-w-6xl mx-auto bg-gradient-to-br from-muted/40 to-transparent mb-10">
             <CardHeader className="flex flex-row items-start justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
-                        2
-                    </div>
                     <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -227,32 +224,81 @@ export default function CalendarCard() {
                         </Button>
                     )}
 
-                    {!isActiveSubscription && (
-                        <Alert className="w-full md:w-[60%] text-yellow-800">
-                            <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                            <AlertTitle>Subscription required</AlertTitle>
-                            <AlertDescription>
-                                Upgrade to a paid plan to enable Calendar
-                                integrations.
-                                <div className="mt-3">
-                                    <Button
-                                        size="sm"
-                                        className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                                        onClick={() => router.push("/billing")}
-                                    >
-                                        Upgrade plan
-                                    </Button>
-                                </div>
-                            </AlertDescription>
-                        </Alert>
+                    {/* If Connected → Next Step */}
+                    {connection.length > 0 && (
+                        <div className="rounded-lg border border-black/10 bg-muted/30 p-5 space-y-4">
+
+                            <CardTitle className="text-lg">
+                                Next Step: Connect your Email Account
+                            </CardTitle>
+
+                            <div className="text-sm text-muted-foreground space-y-2">
+                                <p>
+                                    Once Gmail is connected, we’ll start analyzing incoming emails
+                                    and delivering intelligent notifications via Telegram.
+                                </p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>Create Email Connections so that we can start analyzing your emails</li>
+                                    <li>Telegram is used as your secure delivery channel to send you your important emails.</li>
+                                </ul>
+
+                                <p>
+
+                                    We send important email notifications, smart AI summaries,
+                                    and reminder alerts directly to your Telegram account so you
+                                    never miss critical messages. All notifications are sent only to your connected Telegram
+                                    account — never shared publicly.
+                                </p>
+                            </div>
+
+                            <div className="pt-2">
+                                <p className="text-sm font-medium">
+                                    Next step: Connect your Gmail account
+                                </p>
+
+                                <p className="text-xs text-muted-foreground">
+                                    Once Gmail is connected, we’ll start analyzing incoming emails
+                                    and delivering intelligent notifications via Telegram.
+                                </p>
+                            </div>
+
+                            <Button
+                                style={{ width: "15rem" }}
+                                onClick={() => router.push("/email")}
+                            >
+                                Continue to Gmail Setup
+                            </Button>
+                        </div>
+
                     )}
+                    {
+                        !isActiveSubscription && (
+                            <Alert className="w-full md:w-[60%] text-yellow-800">
+                                <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                                <AlertTitle>Subscription required</AlertTitle>
+                                <AlertDescription>
+                                    Upgrade to a paid plan to enable Calendar
+                                    integrations.
+                                    <div className="mt-3">
+                                        <Button
+                                            size="sm"
+                                            className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                                            onClick={() => router.push("/billing")}
+                                        >
+                                            Upgrade plan
+                                        </Button>
+                                    </div>
+                                </AlertDescription>
+                            </Alert>
+                        )
+                    }
 
                     <p className="text-xs text-muted-foreground text-center">
                         Secure Google OAuth • Event write access only • No email
                         modification
                     </p>
-                </CardContent>
+                </CardContent >
             )}
-        </Card>
+        </Card >
     );
 }
