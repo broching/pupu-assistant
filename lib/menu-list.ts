@@ -1,17 +1,15 @@
 import {
-  Tag,
-  Users,
   Settings,
-  Bookmark,
-  SquarePen,
   LayoutGrid,
   LucideIcon,
-  User,
   FilterIcon,
-  BluetoothConnectedIcon,
   Settings2,
-  Receipt
+  Receipt,
+  Mail,
+  Calendar1Icon,
 } from "lucide-react";
+import { FaTelegramPlane } from "react-icons/fa";
+import { IconType } from "react-icons/lib";
 
 type Submenu = {
   href: string;
@@ -23,7 +21,7 @@ type Menu = {
   href: string;
   label: string;
   active?: boolean;
-  icon: LucideIcon;
+  icon: LucideIcon | IconType;
   submenus?: Submenu[];
 };
 
@@ -48,11 +46,31 @@ export function getMenuList(pathname: string): Group[] {
     {
       groupLabel: "Workflow",
       menus: [
+        // {
+        //   href: "/integrations",
+        //   label: "Integrations",
+        //   icon: Settings2,
+        // },
         {
-          href: "/integrations",
-          label: "Integrations",
-          icon: Settings2,
+          href: "/telegram",
+          label: "Telegram",
+          icon: FaTelegramPlane,
         },
+        {
+          href: "/calendar",
+          label: "Calendar",
+          icon: Calendar1Icon,
+        },
+        {
+          href: "/email",
+          label: "Email",
+          icon: Mail,
+        },
+        // {
+        //   href: "/integrations",
+        //   label: "Integrations",
+        //   icon: Settings2,
+        // },
         {
           href: "/filters",
           label: "Filters",

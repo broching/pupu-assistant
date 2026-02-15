@@ -150,32 +150,18 @@ export default function GmailCard({ telegramConnected = true }: GmailCardProps) 
     <Card className="w-full max-w-6xl mx-auto bg-gradient-to-br from-muted/40 to-transparent">
       <CardHeader className="flex flex-row items-start justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
-            3
-          </div>
 
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
             <Mail className="h-4 w-4 text-muted-foreground" />
           </div>
 
           <div>
-            <CardTitle className="text-xl">Connect Gmail</CardTitle>
+            <CardTitle className="text-xl">Connect Email</CardTitle>
             <p className="text-sm text-muted-foreground">
               You can connect more than one Gmail account
             </p>
           </div>
         </div>
-
-        <button
-          onClick={() => setCollapsed((v) => !v)}
-          className="text-muted-foreground hover:text-foreground transition"
-        >
-          {collapsed ? (
-            <ChevronDown className="h-5 w-5" />
-          ) : (
-            <ChevronUp className="h-5 w-5" />
-          )}
-        </button>
       </CardHeader>
 
       {!collapsed && (
@@ -311,6 +297,50 @@ export default function GmailCard({ telegramConnected = true }: GmailCardProps) 
               >
                 Add Gmail Account
               </Button>
+              {/* Filters Setup Guidance */}
+              {telegramConnected && connections.length > 0 && (
+                <div className="pt-6 border-t border-border space-y-4">
+
+                  <div className="rounded-lg border bg-muted/30 p-5 space-y-4">
+
+                    <CardTitle className="text-lg">
+                      Next Step: Configure filters
+                    </CardTitle>
+
+                    <div className="text-sm text-muted-foreground space-y-2">
+                      <p>
+                        After connecting a Gmail account, you can customize how emails are processed.
+                      </p>
+
+                      <p>
+                        By default, a basic system filter is applied. If you want more control,
+                        edit each connection to:
+                      </p>
+
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Rename the connection for easier management</li>
+                        <li>Attach a custom filter</li>
+                        <li>Control which emails trigger Telegram notifications</li>
+                      </ul>
+
+                      <p>
+                        Filters allow you to define rules such as keywords, senders, urgency,
+                        or AI-based smart conditions.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3 flex-wrap">
+                      <Button
+                        onClick={() => router.push("/filters")}
+                      >
+                        Manage Filters
+                      </Button>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
 
               {(reachedLimit || gmailLimit === 0) && (
                 <Alert className="w-full md:w-[60%] text-yellow-800">
