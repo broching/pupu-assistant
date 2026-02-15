@@ -151,7 +151,7 @@ export default function GmailCard({ telegramConnected = true }: GmailCardProps) 
       <CardHeader className="flex flex-row items-start justify-between">
         <div className="flex items-center gap-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
-            2
+            3
           </div>
 
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">

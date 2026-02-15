@@ -26,6 +26,7 @@ import { useUser } from "@/app/context/userContext";
 import { useApiClient } from "@/app/utils/axiosClient";
 import { useRouter } from "next/navigation";
 import { useSubscription } from "@/lib/subscription/client";
+import { useTheme } from "next-themes";
 
 type CalendarConnection = {
     id: string;
@@ -36,6 +37,7 @@ export default function CalendarCard() {
     const { session, user } = useUser();
     const apiClient = useApiClient();
     const router = useRouter();
+    const { theme, resolvedTheme } = useTheme()
 
     const { subscription, loading: subscriptionLoading } =
         useSubscription(session?.access_token);
@@ -47,6 +49,11 @@ export default function CalendarCard() {
 
     const isActiveSubscription =
         subscription?.status === "active";
+
+    const currentTheme = resolvedTheme === "dark" ? "dark" : "light";
+    const calendarBgColor =
+        currentTheme === "dark" ? "%23111111" : "%23ffffff";
+
 
     /* ------------------------------
        Fetch existing Calendar connection
@@ -116,7 +123,6 @@ export default function CalendarCard() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
                         2
                     </div>
-
                     <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -131,16 +137,6 @@ export default function CalendarCard() {
                     </div>
                 </div>
 
-                <button
-                    onClick={() => setCollapsed((v) => !v)}
-                    className="text-muted-foreground hover:text-foreground transition"
-                >
-                    {collapsed ? (
-                        <ChevronDown className="h-5 w-5" />
-                    ) : (
-                        <ChevronUp className="h-5 w-5" />
-                    )}
-                </button>
             </CardHeader>
 
             {!collapsed && (
@@ -164,15 +160,31 @@ export default function CalendarCard() {
                     )}
 
                     {/* Connected */}
-                    {!loading && (connection.length > 0)  && (
-                        <Alert className="w-full md:w-[50%] text-green-800">
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
-                            <AlertTitle>Calendar Connected</AlertTitle>
-                            <AlertDescription>
-                                Connected as {connection[0].email_address}
-                            </AlertDescription>
-                        </Alert>
+                    {!loading && connection.length > 0 && (
+                        <>
+                            <Alert className="w-full md:w-[50%] text-green-800">
+                                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                <AlertTitle>Calendar Connected</AlertTitle>
+                                <AlertDescription>
+                                    Connected as {connection[0].email_address}
+                                </AlertDescription>
+                            </Alert>
+
+                            {/* Google Calendar UI Embed */}
+                            <div className="w-full mt-6 rounded-xl overflow-hidden border bg-background shadow-sm">
+                                <iframe
+                                    src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(
+                                        connection[0].email_address
+                                    )}&ctz=Asia/Singapore
+                                    &bgcolor=${calendarBgColor}`}
+                                    width="100%"
+                                    height="600"
+
+                                />
+                            </div>
+                        </>
                     )}
+
 
                     {/* Not connected */}
                     {!loading && (connection.length === 0) && !error && (
