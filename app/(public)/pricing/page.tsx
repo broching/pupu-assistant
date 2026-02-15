@@ -194,8 +194,8 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="w-full flex justify-center" style={{ maxWidth: "100rem" }} >
-      <div className="w-full p-7 mt-10">
+    <div className="w-full flex justify-center  mx-auto" style={{ maxWidth: "100rem" }} >
+      <div className="w-full p-7 mt-10 ">
         <div className="mb-10 text-center">
           <h1 className="text-4xl font-bold tracking-tight">Pricing</h1>
 
