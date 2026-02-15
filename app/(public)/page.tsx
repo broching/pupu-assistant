@@ -5,69 +5,42 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Mail, MessageCircle, CheckCircle } from "lucide-react";
 import PricingQnA from "@/components/qna/PricingQnA";
+import { useRouter } from "next/navigation";
+import FeaturesSection from "@/components/FeaturesSection";
 
 export default function Home() {
+  const router = useRouter();
+
   return (
     <main className="flex flex-col min-h-screen w-full">
 
       {/* Hero Section */}
       <section className="relative flex flex-col items-center justify-center text-center py-24 px-6 bg-gradient-to-br from-muted/70 to-muted/10">
         <h1 className="text-4xl sm:text-5xl font-bold max-w-3xl mb-6 mt-10">
-          Your Gmail, Smarter and Faster
+          Your Email, Smarter and Faster
         </h1>
         <p className="text-lg sm:text-xl max-w-2xl mb-8">
-          Get real-time notifications for important emails without leaving your messaging apps. Reduce inbox noise, stay focused, and never miss what matters.
+          Never miss out on an important email ever again and 3X your productivity. Connect Gmail or Outlook to get started
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
-          <Button size="lg">Get Started</Button>
-          <Button variant="outline" size="lg">Learn More</Button>
+          <Button size="lg" onClick={() => router.push("/dashboard")}>
+            Get Started
+          </Button>
+
+          <Button variant="outline" size="lg" onClick={() => router.push("/pricing")}>
+            View Plans
+          </Button>
         </div>
+
         <img
           src="/hero.png"
           alt="Gmail Assistant"
-          width={1000}
-          height={500}
+          width={750}
+          height={300}
           className="mt-12 rounded-xl shadow-lg"
         />
       </section>
-
-      {/* Features Section */}
-      <section id="features" className="py-24 px-6 max-w-7xl mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-12">Why Choose Gmail Assistant</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-
-          <Card className="bg-gradient-to-br from-muted/70 to-muted/10">
-            <CardHeader>
-              <CardTitle>Real-Time Alerts</CardTitle>
-              <CardDescription>Receive instant notifications when important emails arrive—via Telegram, WhatsApp, or other messaging apps.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <img src="/feature1.jpg" alt="Real-Time Alerts" width={400} height={250} className="rounded-lg" />
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-muted/70 to-muted/10">
-            <CardHeader>
-              <CardTitle>Reduce Inbox Noise</CardTitle>
-              <CardDescription>Focus on what matters most. AI-powered filtering highlights important emails and suppresses distractions.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <img src="/feature2.jpg" alt="Reduce Inbox Noise" width={400} height={250} className="rounded-lg" />
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-muted/70 to-muted/10">
-            <CardHeader>
-              <CardTitle>Secure & Private</CardTitle>
-              <CardDescription>Read-only Gmail access. We don't store your actual email data and Your data stays safe with OAuth 2.0 and strict Supabase RLS rules.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <img src="/feature3.jpg" alt="Secure & Private" width={400} height={250} className="rounded-lg" />
-            </CardContent>
-          </Card>
-
-        </div>
-      </section>
+      <FeaturesSection />
 
       {/* How It Works Section */}
       <section className="py-24 px-6 bg-gradient-to-br from-muted/70 to-muted/10 text-center">
