@@ -7,6 +7,7 @@ import { useUser } from "@/app/context/userContext";
 import { useApiClient } from "../../utils/axiosClient";
 import LinkTelegramCard from "@/components/integrations/telegramCard";
 import GmailCard from "@/components/integrations/gmailCard";
+import CalenderCard from "@/components/integrations/CalenderCard";
 
 type TelegramStatus = {
   connected: boolean;
@@ -123,6 +124,7 @@ export default function LinkGmailTelegramPage() {
       />
 
       {/* Pass telegramConnected prop to GmailCard */}
+      <CalenderCard />
       <GmailCard telegramConnected={telegramStatus?.connected} />
     </ContentLayout>
   );

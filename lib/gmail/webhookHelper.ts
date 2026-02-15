@@ -6,6 +6,8 @@ import { analyzeEmailWithAI } from "./analyzeEmailWithAi";
 import { canAccessPlan } from "../subscription/server";
 import { decrypt, safeDecrypt } from "../encryption/helper";
 import { NextRequest } from "next/server";
+import { calendar } from "googleapis/build/src/apis/calendar";
+import { createServerClient } from "@supabase/ssr";
 
 /* ------------------------------
    Helper: parse Pub/Sub payload
@@ -31,6 +33,23 @@ export async function getUserTokens(supabase: Awaited<ReturnType<typeof createCl
         .from("user_gmail_tokens")
         .select("*")
         .eq("email_address", emailAddress)
+        .single();
+
+    if (error || !data) {
+        throw new Error("User tokens not found");
+    }
+    console.log(data)
+    data.access_token = safeDecrypt(data.access_token)
+    data.refresh_token = safeDecrypt(data.refresh_token)
+    return data;
+}
+
+export async function getUserCalendarTokens(userId: string) {
+    const supabase = await createClient({ useServiceRole: true });
+    const { data, error } = await supabase
+        .from("google_calendar_connections")
+        .select("*")
+        .eq("user_id", userId)
         .single();
 
     if (error || !data) {
@@ -79,6 +98,42 @@ export function createOAuthClient(userTokens: any, supabase: any) {
         version: "v1",
         auth: oauth2Client,
     });
+}
+
+export function createCalendarOauthClient(userTokens: any, supabase: any) {
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CALENDAR_CLIENT_ID,
+        process.env.GOOGLE_CALENDAR_CLIENT_SECRET
+    );
+
+    oauth2Client.setCredentials({
+        access_token: userTokens.access_token,
+        refresh_token: userTokens.refresh_token,
+    });
+
+    oauth2Client.on("tokens", async (tokens) => {
+        console.log("🔄 OAuth tokens refreshed", {
+            userId: userTokens.user_id,
+            hasAccessToken: !!tokens.access_token,
+            hasRefreshToken: !!tokens.refresh_token,
+        });
+
+        const updates: any = {};
+        if (tokens.access_token) updates.access_token = tokens.access_token;
+        if (tokens.refresh_token) updates.refresh_token = tokens.refresh_token;
+
+        if (Object.keys(updates).length > 0) {
+            await supabase
+                .from("google_calendar_connections")
+                .update({
+                    ...updates,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq("email_address", userTokens.email_address);
+        }
+    });
+
+    return oauth2Client;
 }
 
 export async function fetchGmailHistory(
@@ -153,7 +208,7 @@ export async function processHistories(
 
             try {
                 // ==================================================
-                // STEP 0: ATOMIC CLAIM (THIS IS THE FIX)
+                // STEP 0: ATOMIC CLAIM
                 // ==================================================
                 const { data: claim, error: claimError } = await supabase
                     .from("email_ai_responses")
@@ -230,6 +285,7 @@ export async function processHistories(
                     .update({
                         message_status: "completed",
                         reply_message: analysis.emailAnalysis.replyMessage,
+                        calendar: analysis.emailAnalysis.calendarEvent,
                         message_score: score,
                         flagged_keywords: analysis.emailAnalysis.keywordsFlagged,
                         usage_tokens: analysis.usageTokens ?? null,
@@ -248,16 +304,27 @@ export async function processHistories(
                         `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
                     const datelineDate = analysis.emailAnalysis.datelineDate;
 
+                    // Build inline keyboard dynamically
+                    const inlineKeyboard: { text: string; callback_data: string }[][] = [
+                        [
+                            { text: "🚨Remind Me", callback_data: `remind_me:${msg.id}:dateline:${datelineDate}` },
+                        ],
+                    ];
+
+                    // Add "Add to Calendar" button if calendarEvent exists
+                    if (analysis.emailAnalysis.calendarEvent) {
+                        const { summary, start, end } = analysis.emailAnalysis.calendarEvent;
+                        // Optional: encode event as JSON for callback_data, or just a unique identifier
+                        const calendarCallback = `add_calendar:${msg.id}`; // you can handle this callback separately
+                        inlineKeyboard[0].push({ text: "📅 Add to Calendar", callback_data: calendarCallback });
+                    }
+
                     await sendTelegramMessage(
                         userTokens.user_id,
                         replyUserMessage,
                         {
                             reply_markup: {
-                                inline_keyboard: [
-                                    [
-                                        { text: "🚨Remind Me", callback_data: `remind_me:${msg.id}:dateline:${datelineDate}` },
-                                    ],
-                                ],
+                                inline_keyboard: inlineKeyboard,
                             },
                         }
                     );
@@ -266,6 +333,7 @@ export async function processHistories(
                         `✅ Sent Telegram for message ${msg.id} (override=${booleanOverride}, score=${score})`
                     );
                 }
+
 
             } catch (err) {
                 console.error("❌ Failed to process message", {

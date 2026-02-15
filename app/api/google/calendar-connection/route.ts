@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClientWithToken } from "@/lib/supabase/clientWithToken";
 
 export async function GET(req: NextRequest) {
+    console.log('calender reached')
     try {
         const token = req.headers.get("Authorization")?.replace("Bearer ", "");
         if (!token) {
@@ -16,18 +17,20 @@ export async function GET(req: NextRequest) {
         if (id) {
             // Get single connection by ID
             const { data, error } = await supabase
-                .from("user_gmail_tokens")
+                .from("google_calendar_connections")
                 .select("*")
-                .eq("user_id", id)
+                .eq("user_id", id);
 
             if (error) {
+                console.log('error', error)
                 console.error(error)
                 return NextResponse.json({ error: error.message }, { status: 404 });
             }
+            console.log("calender-connection", data)
             return NextResponse.json({ data });
         }
     } catch (err: any) {
-        console.error("GET /gmail-connections error:", err);
+        console.error("GET /calender-connections error:", err);
         return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
     }
 }

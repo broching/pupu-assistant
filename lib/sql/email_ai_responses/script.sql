@@ -28,6 +28,9 @@ create table email_ai_responses (
     flagged_keywords text[],
     usage_tokens jsonb,
 
+    -- NEW: calendar event object (nullable)
+    calendar jsonb,
+
     created_at timestamptz default now(),
     updated_at timestamptz default now()
 );

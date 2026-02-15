@@ -9,6 +9,8 @@ import {
   buildCalendarDays,
   generateSuggestedDates,
 } from "@/lib/telegram/dateUtils";
+import { createCalendarOauthClient, getUserCalendarTokens, getUserTokens } from "@/lib/gmail/webhookHelper";
+import { google } from "googleapis";
 
 export type ActionParams = {
   data: string;
@@ -38,6 +40,8 @@ export async function handleTelegramAction(params: ActionParams): Promise<void> 
       return handleRemindCustom(gmailMessageId, params.chatId);
     case "custom_date":
       return handleRemindSet(params.chatId, gmailMessageId, dateValue ?? "");
+    case "add_calendar":
+      return handleAddToCalendar(gmailMessageId, params.chatId);
     case "noop":
       return;
     default:
@@ -234,4 +238,97 @@ async function handleRemindCustom(
     "⏰ When should I remind you?\n\nYou can type it naturally:\n• Feb 19\n• Feb 19 at 3pm\n• 2026-02-19 10:30\n• tomorrow or tmr\n\nOr simply choose a date below.\nIf you don't specify a time, I'll remind you at 8:00am (SG time).",
     { parse_mode: "Markdown", reply_markup: { inline_keyboard: calendarRows } }
   );
+}
+
+async function handleAddToCalendar(
+  gmailMessageId: string,
+  chatId: number
+): Promise<void> {
+  console.log("mmessage recieved:?", gmailMessageId)
+  const supabase = await createClient({ useServiceRole: true });
+
+  // 1️⃣ Get user ID from Telegram connection
+  const { data: connection } = await supabase
+    .from("user_telegram_connections")
+    .select("user_id")
+    .eq("telegram_chat_id", chatId)
+    .single();
+
+  if (!connection?.user_id) {
+    await sendErrorByChatId(chatId, "Could not find your account.");
+    return;
+  }
+
+  const userId = connection.user_id;
+
+  // 2️⃣ Fetch stored calendar object
+  const { data: emailResponse } = await supabase
+    .from("email_ai_responses")
+    .select("calendar")
+    .eq("user_id", userId)
+    .eq("message_id", gmailMessageId)
+    .single();
+
+  if (!emailResponse?.calendar) {
+    await sendErrorByChatId(chatId, "No calendar event found for this message.");
+    return;
+  }
+
+  const event = emailResponse.calendar;
+
+  try {
+    // 3️⃣ Get user tokens and create OAuth2 client
+    const userTokens = await getUserCalendarTokens(userId);
+    const oauthClient = createCalendarOauthClient(userTokens, supabase);
+
+    // 4️⃣ Create Calendar API client
+    const calendar = google.calendar({ version: "v3", auth: oauthClient });
+
+    // 5️⃣ Insert event
+    await calendar.events.insert({
+      calendarId: "primary",
+      requestBody: {
+        summary: event.summary,
+        description: event.description ?? undefined,
+        location: event.location ?? undefined,
+        start: {
+          dateTime: event.start,
+          timeZone: "Asia/Singapore",
+        },
+        end: {
+          dateTime: event.end,
+          timeZone: "Asia/Singapore",
+        },
+      },
+    });
+    const startStr = formatDateTimeFriendly(event.start);
+    const endStr = formatDateTimeFriendly(event.end);
+    // 6️⃣ Confirmation to Telegram
+    await sendByChatId(
+      chatId,
+      `📅 *Event added to your Google Calendar!*\n\n` +
+      `*Title:* ${event.summary}\n` +
+      (event.description ? `*Description:* ${event.description}\n` : "") +
+      `*Start:* ${startStr}\n` +
+      `*End:* ${endStr}`,
+      { parse_mode: "Markdown" }
+    );
+  } catch (err) {
+    console.error("Calendar insert error:", err);
+    await sendErrorByChatId(chatId, "Failed to add event to calendar.");
+  }
+}
+
+function formatDateTimeFriendly(dateTime: string) {
+  const dt = new Date(dateTime);
+  return dt.toLocaleString("en-SG", {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Singapore",
+  });
 }

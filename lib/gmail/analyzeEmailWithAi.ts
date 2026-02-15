@@ -18,5 +18,6 @@ export async function analyzeEmailWithAI(params: {
   });
 
   const res = ai.generateJSON<EmailAnalysisResult>(prompt);
+  console.log(await res)
   return res;
 }
