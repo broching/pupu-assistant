@@ -129,6 +129,7 @@ export default function CalendarRow({ session, user, apiClient }: CalendarRowPro
               onClick={handleConnectCalendar}
               disabled={!isActiveSubscription}
               className="flex items-center"
+              id="connect-calendar-button"
             >
               <Link2 className="h-3 w-3 mr-1" />
               Connect

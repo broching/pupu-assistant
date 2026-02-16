@@ -131,6 +131,7 @@ export default function GmailRow({ telegramConnected = true }: GmailRowProps) {
             onClick={handleConnectGmail}
             disabled={subscriptionLoading || !isActiveSubscription || !telegramConnected || reachedLimit || gmailLimit === 0}
             className="flex items-center"
+            id="connect-gmail-button"
           >
             <Link2 className="h-3 w-3 mr-1" />
             Connect

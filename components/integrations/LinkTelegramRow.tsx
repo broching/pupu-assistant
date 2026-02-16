@@ -113,6 +113,7 @@ export default function LinkTelegramRow({
               variant="outline"
               onClick={handleConnectTelegram}
               className="flex items-center"
+              id="connect-telegram-button"
             >
               <Link2 className="h-3 w-3 mr-1" />
               Connect

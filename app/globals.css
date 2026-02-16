@@ -1,5 +1,5 @@
+@import 'shepherd.js/dist/css/shepherd.css';
 @tailwind base;
-
 @custom-variant dark (&:is(.dark *));
 @tailwind components;
 @tailwind utilities;
@@ -184,3 +184,4 @@
     --sidebar-ring: oklch(0.439 0 0);
   }
 }
+
