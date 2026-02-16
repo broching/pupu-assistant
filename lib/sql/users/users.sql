@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     email TEXT UNIQUE,
     name TEXT,
     phone_number TEXT,
-    subscription TEXT
+    subscription TEXT,
+    tour BOOLEAN
 );
 
 -- ================================

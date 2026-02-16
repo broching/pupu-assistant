@@ -14,6 +14,7 @@ import GmailCard from "@/components/integrations/GmailRow";
 import CalenderCard from "@/components/integrations/CalendarRow";
 import ConnectionsCard from "@/components/integrations/ConnectionsCard";
 import { Edit2 } from "lucide-react";
+import OnboardingTour from "@/components/tutorial/OnBoardingTour";
 
 type TelegramStatus = {
   connected: boolean;
@@ -169,6 +170,7 @@ export default function AccountPage() {
 
   return (
     <ContentLayout title="Account">
+      <OnboardingTour></OnboardingTour>
       <div className="max-w-4xl mx-auto mt-5 space-y-6">
         <Card>
           <CardHeader>

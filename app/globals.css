@@ -1,8 +1,54 @@
+@import 'shepherd.js/dist/css/shepherd.css';
 @tailwind base;
-
 @custom-variant dark (&:is(.dark *));
 @tailwind components;
 @tailwind utilities;
+
+/* ------------------------------
+   Fonts
+--------------------------------*/
+@layer base {
+  :root {
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-heading: 'Manrope', system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  strong {
+    font-family: var(--font-heading);
+  }
+}
+
+/* ------------------------------
+   Dark Mode Variables
+--------------------------------*/
+@layer base {
+  .dark {
+    body {
+      font-family: var(--font-sans);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    strong {
+      font-family: var(--font-heading);
+    }
+  }
+}
 
 @layer base {
   :root {
@@ -138,3 +184,4 @@
     --sidebar-ring: oklch(0.439 0 0);
   }
 }
+

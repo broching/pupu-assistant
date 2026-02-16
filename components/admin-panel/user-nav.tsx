@@ -30,8 +30,6 @@ export function UserNav() {
     user?.user_metadata?.avatar_url ||
     user?.user_metadata?.picture ||
     null;
-
-  console.log(avatarSrc)
   return (
     <DropdownMenu>
       <TooltipProvider disableHoverableContent>

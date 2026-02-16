@@ -16,6 +16,7 @@ import { FaUnlink } from "react-icons/fa";
 import { useApiClient } from "@/app/utils/axiosClient";
 import { useUser } from "@/app/context/userContext";
 import { useSubscription } from "@/lib/subscription/client";
+import OnboardingTour from "@/components/tutorial/OnBoardingTour";
 
 type TelegramStatus = { connected: boolean; telegram_username?: string };
 type GmailConnection = { id: string; email_address: string; connection_name: string | null; filter_name: string | null };
@@ -31,7 +32,7 @@ type EmailAIResponse = {
 
 export default function Dashboard() {
   const apiClient = useApiClient();
-  const { user, session } = useUser();
+  const { user, session, tour, tourLoaded } = useUser();
   const { subscription } = useSubscription(session?.access_token);
   const router = useRouter();
 
@@ -72,39 +73,58 @@ export default function Dashboard() {
   /* ------------------------------------
      Data fetchers
   ------------------------------------ */
-  useEffect(() => {
-    if (!user?.id) return;
-    setLoading(true);
+useEffect(() => {
+  if (!user?.id) return;
+  if (!tourLoaded) return; // 🔥 Wait until tour is finalized
 
-    const checkTelegramLink = async () => {
-      try {
-        const res = await apiClient.get(`/api/telegram/check-link?userId=${user.id}`);
-        setTelegramStatus({ connected: true, telegram_username: res.data.telegram_username });
-      } catch {
-        setTelegramStatus({ connected: false });
-      }
-    };
+  if (!tour) {
+    router.push("/account");
+    return;
+  }
 
-    const fetchConnections = async () => {
-      try {
-        const res = await apiClient.get(`/api/google/gmail-connections?userId=${user.id}`);
-        setConnections(res.data.data || []);
-      } catch {
-        setConnections([]);
-      }
-    };
+  setLoading(true);
 
-    const checkCalendarLink = async () => {
-      try {
-        const res = await apiClient.get(`/api/google/calendar-connection?userId=${user.id}`);
-        setCalendarStatus({ connected: !!res.data.data[0], email: res.data.data[0]?.email_address || "" });
-      } catch {
-        setCalendarStatus({ connected: false, email: "" });
-      }
-    };
+  const checkTelegramLink = async () => {
+    try {
+      const res = await apiClient.get(`/api/telegram/check-link?userId=${user.id}`);
+      setTelegramStatus({
+        connected: true,
+        telegram_username: res.data.telegram_username,
+      });
+    } catch {
+      setTelegramStatus({ connected: false });
+    }
+  };
 
-    Promise.all([checkTelegramLink(), fetchConnections(), checkCalendarLink()]).finally(() => setLoading(false));
-  }, [user?.id]);
+  const fetchConnections = async () => {
+    try {
+      const res = await apiClient.get(`/api/google/gmail-connections?userId=${user.id}`);
+      setConnections(res.data.data || []);
+    } catch {
+      setConnections([]);
+    }
+  };
+
+  const checkCalendarLink = async () => {
+    try {
+      const res = await apiClient.get(`/api/google/calendar-connection?userId=${user.id}`);
+      setCalendarStatus({
+        connected: !!res.data.data[0],
+        email: res.data.data[0]?.email_address || "",
+      });
+    } catch {
+      setCalendarStatus({ connected: false, email: "" });
+    }
+  };
+
+  Promise.all([
+    checkTelegramLink(),
+    fetchConnections(),
+    checkCalendarLink(),
+  ]).finally(() => setLoading(false));
+
+}, [user?.id, tourLoaded, tour]);
+
 
   const hasActivePlan = subscription?.status === "active" && subscription?.hasAccess;
 
