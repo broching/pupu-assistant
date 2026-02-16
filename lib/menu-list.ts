@@ -7,6 +7,7 @@ import {
   Receipt,
   Mail,
   Calendar1Icon,
+  ChartNoAxesColumn,
 } from "lucide-react";
 import { FaTelegramPlane } from "react-icons/fa";
 import { IconType } from "react-icons/lib";
@@ -46,51 +47,17 @@ export function getMenuList(pathname: string): Group[] {
     {
       groupLabel: "Workflow",
       menus: [
-        // {
-        //   href: "/integrations",
-        //   label: "Integrations",
-        //   icon: Settings2,
-        // },
         {
-          href: "/telegram",
-          label: "Telegram",
-          icon: FaTelegramPlane,
+          href: "/email-analytics",
+          label: "Email Analytics",
+          icon: ChartNoAxesColumn,
         },
-        {
-          href: "/calendar",
-          label: "Calendar",
-          icon: Calendar1Icon,
-        },
-        {
-          href: "/email",
-          label: "Email",
-          icon: Mail,
-        },
-        // {
-        //   href: "/integrations",
-        //   label: "Integrations",
-        //   icon: Settings2,
-        // },
+        
         {
           href: "/filters",
           label: "Filters",
           icon: FilterIcon,
         },
-        // {
-        //   href: "",
-        //   label: "Pods",
-        //   icon: SquarePen,
-        //   submenus: [
-        //     {
-        //       href: "/listing",
-        //       label: "All Listings"
-        //     },
-        //     {
-        //       href: "/listing-new",
-        //       label: "New Listing"
-        //     }
-        //   ]
-        // },
       ]
     },
     {

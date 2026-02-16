@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     if (!code || !stateEncoded) {
       console.warn("❌ Missing code or state");
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=calendar_denied`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=calendar_denied`
       );
     }
 
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     if (!userId) {
       console.warn("❌ Invalid state payload");
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=invalid_state`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=invalid_state`
       );
     }
 
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     if (!tokens.access_token || !tokens.refresh_token) {
       console.warn("❌ Missing required tokens");
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=calendar_tokens`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=calendar_tokens`
       );
     }
 
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
     if (!email) {
       console.warn("❌ No email returned from Google");
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=no_email`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=no_email`
       );
     }
 
@@ -108,7 +108,7 @@ export async function GET(req: NextRequest) {
     if (subError || !subscription) {
       console.warn("❌ No subscription found");
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=no_subscription`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=no_subscription`
       );
     }
 
@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
     ) {
       console.warn("❌ Subscription inactive:", subscription.status);
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=inactive_plan`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=inactive_plan`
       );
     }
 
@@ -153,7 +153,7 @@ export async function GET(req: NextRequest) {
     if (dbError) {
       console.error("❌ DB upsert error:", dbError);
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=server`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=server`
       );
     }
 
@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
        8️⃣ Redirect back
     ---------------------------------------- */
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/integrations?calendar=connected`
+      `${process.env.NEXT_PUBLIC_APP_URL}/account?calendar=connected`
     );
   } catch (err: any) {
     console.error("🔥 Calendar OAuth callback error:");
@@ -177,7 +177,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=calendar_failed`
+      `${process.env.NEXT_PUBLIC_APP_URL}/account?error=calendar_failed`
     );
   }
 }
