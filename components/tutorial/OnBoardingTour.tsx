@@ -31,12 +31,10 @@ export default function OnboardingTour() {
   useEffect(() => {
     const initTour = async () => {
       // Prevent duplicate tours
-      if ( tour === null)
-      {
+      if (tour === null) {
         return
       }
-      else if (tour)
-      {
+      else if (tour) {
         return
       }
 
@@ -109,6 +107,7 @@ export default function OnboardingTour() {
         tour.start();
       } catch (err) {
         console.error(err);
+        handleCompleteTour();
       }
     };
 
