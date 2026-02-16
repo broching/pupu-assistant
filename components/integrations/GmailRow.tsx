@@ -40,7 +40,7 @@ export default function GmailRow({ telegramConnected = true }: GmailRowProps) {
 
   const planName: PlanName = subscription?.planName ?? "free_trial";
   const isActiveSubscription = subscription?.status === "active";
-  const gmailLimit = isActiveSubscription ? PLAN_GMAIL_LIMITS[planName] : 0;
+  const gmailLimit = (isActiveSubscription || subscription?.planName === "free_trial") ? PLAN_GMAIL_LIMITS[planName] : 0;
   const reachedLimit = gmailLimit !== Infinity && connections.length >= gmailLimit;
 
   /* Fetch Gmail connections */
@@ -109,7 +109,7 @@ export default function GmailRow({ telegramConnected = true }: GmailRowProps) {
         {/* Alert / Subscription message + Connect Button */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2 sm:mt-0 w-full sm:w-auto">
           {/* Subscription check */}
-          {!isActiveSubscription && !subscriptionLoading && (
+          {(!isActiveSubscription && !subscriptionLoading && subscription?.planName !== "free_trial") && (
             <div className="flex items-center gap-2 text-yellow-600 text-xs font-medium">
               <AlertTriangleIcon className="h-4 w-4" />
               <span>Upgrade to a paid plan</span>
@@ -117,7 +117,7 @@ export default function GmailRow({ telegramConnected = true }: GmailRowProps) {
           )}
 
           {/* Telegram check if subscription active */}
-          {isActiveSubscription && !telegramConnected && (
+          {(isActiveSubscription || subscription?.planName === "free_trial") && !telegramConnected && (
             <div className="flex items-center gap-2 text-yellow-600 text-xs font-medium">
               <AlertTriangleIcon className="h-4 w-4" />
               <span>Connect Telegram first</span>
@@ -129,7 +129,7 @@ export default function GmailRow({ telegramConnected = true }: GmailRowProps) {
             size="sm"
             variant="outline"
             onClick={handleConnectGmail}
-            disabled={subscriptionLoading || !isActiveSubscription || !telegramConnected || reachedLimit || gmailLimit === 0}
+            disabled={subscriptionLoading || (!isActiveSubscription && subscription?.planName !== "free_trial") || !telegramConnected || reachedLimit || gmailLimit === 0}
             className="flex items-center"
             id="connect-gmail-button"
           >
@@ -152,7 +152,7 @@ export default function GmailRow({ telegramConnected = true }: GmailRowProps) {
       <div className="relative overflow-x-auto mt-3">
         <div
           className={`min-w-[600px] rounded-md border
-            ${(!isActiveSubscription || !telegramConnected) ? 'blur-sm pointer-events-none select-none' : ''}`}
+            ${((!isActiveSubscription && subscription?.planName !== "free_trial") || !telegramConnected) ? 'blur-sm pointer-events-none select-none' : ''}`}
         >
           <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
             <div className="col-span-3">Connection Name</div>
@@ -195,20 +195,28 @@ export default function GmailRow({ telegramConnected = true }: GmailRowProps) {
         </div>
 
         {/* Overlay if subscription inactive or Telegram not connected */}
-        {(!isActiveSubscription || !telegramConnected) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm text-center p-6 space-y-4">
-            {!isActiveSubscription ? (
-              <div className="text-md font-semibold ">
-                Upgrade to a paid plan to enable Gmail integrations
+        {((!isActiveSubscription && subscription?.planName !== "free_trial") || !telegramConnected) && (
+          <>
+
+            {(!isActiveSubscription && subscription?.planName !== "free_trial") ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm text-center p-6 space-y-4">
+                <div className="text-md font-semibold ">
+                  Upgrade to a paid plan to enable Gmail integrations
+                </div>
               </div>
             ) : (
-              <div className="text-md font-semibold">
-                Please connect Telegram to enable Gmail integrations
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm text-center p-6 space-y-4">
+                <div className="text-md font-semibold">
+                  Please connect Telegram to enable Gmail integrations
+                </div>
               </div>
+
             )}
-          </div>
+
+          </>
         )}
       </div>
+
     </div>
   );
 }
