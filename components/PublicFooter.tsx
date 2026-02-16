@@ -64,7 +64,7 @@ function PublicFooter() {
                                 </h3>
                                 <ul className="space-y-3">
                                     {[
-                                        ["Terms and conditions", "/terms-of-service"],
+                                        ["Terms of service", "/terms-of-service"],
                                         ["Privacy Policy", "/privacy-policy"],
                                     ].map(([label, href]) => (
                                         <li key={label}>
