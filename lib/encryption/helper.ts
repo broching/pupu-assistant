@@ -3,72 +3,44 @@ import crypto from "crypto";
 
 /**
  * ============================================
- * Production Hardened AES-256-GCM Encryption
+ * Production AES-256-GCM Encryption (Single Key)
  * ============================================
  *
  * Format:
- * v1:iv:ciphertext:authTag
+ * iv:ciphertext:authTag
  *
- * Supports:
- * - Key rotation
- * - Multiple key versions
- * - Safe format validation
- * - Optional scrypt key derivation
+ * - AES-256-GCM
+ * - 32-byte hex key from env
+ * - Tamper detection
+ * - Strict validation
  */
 
-// -------------------------------
-// Configuration
-// -------------------------------
-
 const ALGORITHM = "aes-256-gcm";
-const IV_LENGTH = 12; // 96-bit recommended for GCM
-const CURRENT_KEY_VERSION = "v1";
+const IV_LENGTH = 12; // 96-bit IV for GCM
+const AUTH_TAG_LENGTH = 16; // 128-bit auth tag
 
-// You can either:
-// 1. Provide single key: GMAIL_TOKENS_ENCRYPTION_KEY
-// OR
-// 2. Provide JSON map: GMAIL_TOKENS_ENCRYPTION_KEYS='{"v1":"hexkey","v2":"hexkey"}'
+// -------------------------------
+// Load & Validate Key
+// -------------------------------
 
-function loadKeys(): Record<string, Buffer> {
-  if (process.env.GMAIL_TOKENS_ENCRYPTION_KEYS) {
-    const parsed = JSON.parse(process.env.GMAIL_TOKENS_ENCRYPTION_KEYS);
-    const keys: Record<string, Buffer> = {};
+function loadKey(): Buffer {
+  const hex = process.env.GMAIL_TOKENS_ENCRYPTION_KEY;
 
-    for (const version of Object.keys(parsed)) {
-      const hex = parsed[version];
-      const buf = Buffer.from(hex, "hex");
-
-      if (buf.length !== 32) {
-        throw new Error(`Key ${version} must be 32 bytes (64 hex chars)`);
-      }
-
-      keys[version] = buf;
-    }
-
-    return keys;
+  if (!hex) {
+    throw new Error("GMAIL_TOKENS_ENCRYPTION_KEY is not defined");
   }
 
-  if (!process.env.GMAIL_TOKENS_ENCRYPTION_KEY) {
-    throw new Error(
-      "GMAIL_TOKENS_ENCRYPTION_KEY or GMAIL_TOKENS_ENCRYPTION_KEYS must be defined"
-    );
+  if (!/^[0-9a-f]{64}$/i.test(hex)) {
+    throw new Error("Encryption key must be 64 hex characters (32 bytes)");
   }
 
-  const key = Buffer.from(process.env.GMAIL_TOKENS_ENCRYPTION_KEY, "hex");
-
-  if (key.length !== 32) {
-    throw new Error("GMAIL_TOKENS_ENCRYPTION_KEY must be 32 bytes (64 hex chars)");
-  }
-
-  return {
-    [CURRENT_KEY_VERSION]: key,
-  };
+  return Buffer.from(hex, "hex");
 }
 
-const KEYS = loadKeys();
+const KEY = loadKey();
 
 // -------------------------------
-// Utilities
+// Helpers
 // -------------------------------
 
 function isValidHex(str: string) {
@@ -77,34 +49,35 @@ function isValidHex(str: string) {
 
 function parseEncrypted(value: string) {
   const parts = value.split(":");
-  if (parts.length !== 4) {
-    throw new Error("Invalid encrypted format. Expected vX:iv:ciphertext:authTag");
+
+  if (parts.length !== 3) {
+    throw new Error("Invalid encrypted format");
   }
 
-  const [version, ivHex, cipherHex, tagHex] = parts;
-
-  if (!KEYS[version]) {
-    throw new Error(`Unknown encryption key version: ${version}`);
-  }
+  const [ivHex, cipherHex, tagHex] = parts;
 
   if (!isValidHex(ivHex) || !isValidHex(cipherHex) || !isValidHex(tagHex)) {
     throw new Error("Encrypted payload contains invalid hex");
   }
 
-  return {
-    version,
-    iv: Buffer.from(ivHex, "hex"),
-    ciphertext: Buffer.from(cipherHex, "hex"),
-    authTag: Buffer.from(tagHex, "hex"),
-  };
+  const iv = Buffer.from(ivHex, "hex");
+  const ciphertext = Buffer.from(cipherHex, "hex");
+  const authTag = Buffer.from(tagHex, "hex");
+
+  if (iv.length !== IV_LENGTH) {
+    throw new Error("Invalid IV length");
+  }
+
+  if (authTag.length !== AUTH_TAG_LENGTH) {
+    throw new Error("Invalid auth tag length");
+  }
+
+  return { iv, ciphertext, authTag };
 }
 
 function isEncrypted(value: string): boolean {
   if (typeof value !== "string") return false;
-  const parts = value.split(":");
-  if (parts.length !== 4) return false;
-  if (!parts[0].startsWith("v")) return false;
-  return true;
+  return value.split(":").length === 3;
 }
 
 // -------------------------------
@@ -112,12 +85,13 @@ function isEncrypted(value: string): boolean {
 // -------------------------------
 
 export function encrypt(plainText: string): string {
-  if (!plainText) return "";
+  if (typeof plainText !== "string" || plainText.length === 0) {
+    throw new Error("Cannot encrypt empty or invalid value");
+  }
 
-  const key = KEYS[CURRENT_KEY_VERSION];
   const iv = crypto.randomBytes(IV_LENGTH);
 
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
 
   const encrypted = Buffer.concat([
     cipher.update(plainText, "utf8"),
@@ -127,7 +101,6 @@ export function encrypt(plainText: string): string {
   const authTag = cipher.getAuthTag();
 
   return [
-    CURRENT_KEY_VERSION,
     iv.toString("hex"),
     encrypted.toString("hex"),
     authTag.toString("hex"),
@@ -139,46 +112,43 @@ export function encrypt(plainText: string): string {
 // -------------------------------
 
 export function decrypt(encrypted: string): string {
-  if (!encrypted) return "";
+  if (typeof encrypted !== "string" || encrypted.length === 0) {
+    throw new Error("Invalid encrypted value");
+  }
 
-  const { version, iv, ciphertext, authTag } = parseEncrypted(encrypted);
-  const key = KEYS[version];
+  const { iv, ciphertext, authTag } = parseEncrypted(encrypted);
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+  const decipher = crypto.createDecipheriv(ALGORITHM, KEY, iv);
   decipher.setAuthTag(authTag);
 
-  const decrypted = Buffer.concat([
-    decipher.update(ciphertext),
-    decipher.final(),
-  ]);
+  try {
+    const decrypted = Buffer.concat([
+      decipher.update(ciphertext),
+      decipher.final(),
+    ]);
 
-  return decrypted.toString("utf8");
+    return decrypted.toString("utf8");
+  } catch {
+    throw new Error("Decryption failed (possible tampering)");
+  }
 }
 
 // -------------------------------
-// Safe Decrypt (Legacy Compatible)
+// Safe Decrypt (Optional)
 // -------------------------------
 
 export function safeDecrypt(value: string): string {
   if (!value) return "";
 
-  if (!isEncrypted(value)) {
-    // legacy plaintext data
+  try {
+    if (!isEncrypted(value)) {
+      // Assume legacy plaintext
+      return value;
+    }
+
+    return decrypt(value);
+  } catch {
+    // If decrypt fails, assume legacy plaintext
     return value;
   }
-
-  return decrypt(value);
-}
-
-// -------------------------------
-// Optional: Derive Key From Secret
-// -------------------------------
-
-/**
- * If you want to derive key instead of storing raw hex:
- *
- * const derived = crypto.scryptSync(secret, salt, 32);
- */
-export function deriveKeyFromSecret(secret: string, salt: string): Buffer {
-  return crypto.scryptSync(secret, salt, 32);
 }
