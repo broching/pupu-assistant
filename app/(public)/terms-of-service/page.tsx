@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function TermsAndConditionsPage() {
+export default function TermsOfServicePage() {
     const router = useRouter();
     const [tocOpen, setTocOpen] = useState(true);
     const toggleToc = () => setTocOpen(!tocOpen);
@@ -60,12 +60,12 @@ export default function TermsAndConditionsPage() {
 
             {/* Main Content */}
             <div className="col-span-12 xl:col-span-9 prose max-w-none space-y-8" style={{ marginTop: "60px" }}>
-                <h1 className="text-4xl font-bold">Terms and Conditions – Gmail Assistant SaaS</h1>
+                <h1 className="text-4xl font-bold">Terms of service – Gmail Assistant SaaS</h1>
 
                 <p>Effective date: February 16, 2026</p>
 
                 <p>
-                    Welcome to PuPuAssistant. These Terms and Conditions (“Terms”) govern your access to and use of our
+                    Welcome to PuPuAssistant. These Terms of service (“Terms”) govern your access to and use of our
                     Gmail monitoring service (“Service”). By using the Service, you agree to be bound by these Terms.
                 </p>
 
