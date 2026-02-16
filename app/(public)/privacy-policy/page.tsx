@@ -44,7 +44,7 @@ export default function PrivacyPolicyPage() {
                             ))}
                             <li key='terms&condition'>
                                 <button onClick={ () => { router.push('/terms-of-service') }} className="hover:text-blue-600 block">
-                                    Terms and conditions
+                                    Terms of service
                                 </button>
                             </li>
                         </ul>
