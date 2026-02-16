@@ -1,57 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import { ContentLayout } from "@/components/admin-panel/content-layout";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-import { Mail, Send, BadgeCheck, Calendar } from "lucide-react";
+import { Mail, AlertTriangleIcon, Pencil } from "lucide-react";
+import { FaUnlink } from "react-icons/fa";
 
 import { useApiClient } from "@/app/utils/axiosClient";
 import { useUser } from "@/app/context/userContext";
 import { useSubscription } from "@/lib/subscription/client";
-import { useRouter } from "next/navigation";
 
-/* ------------------------------------
-   Types
------------------------------------- */
-type TelegramStatus = {
-  connected: boolean;
-  telegram_username?: string;
-};
-
-type GmailConnection = {
-  id: string;
-  email_address: string;
-  connection_name: string | null;
-  filter_name: string | null;
-};
-
-type CalendarStatus = {
-  connected: boolean;
-  email: string;
-};
-
-/* ------------------------------------
-   Skeleton helpers
------------------------------------- */
-function CardSkeleton() {
-  return (
-    <div className="space-y-3">
-      <Skeleton className="h-4 w-1/2" />
-      <Skeleton className="h-8 w-3/4" />
-      <Skeleton className="h-4 w-1/3" />
-    </div>
-  );
+type TelegramStatus = { connected: boolean; telegram_username?: string };
+type GmailConnection = { id: string; email_address: string; connection_name: string | null; filter_name: string | null };
+type CalendarStatus = { connected: boolean; email: string };
+type EmailAIResponse = {
+  id: string
+  message_id: string
+  message_status: "processing" | "completed" | "failed"
+  message_score: number | null
+  flagged_keywords: string[] | null
+  created_at: string
 }
 
 export default function Dashboard() {
@@ -60,304 +35,240 @@ export default function Dashboard() {
   const { subscription } = useSubscription(session?.access_token);
   const router = useRouter();
 
-  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus>({
-    connected: false,
-  });
+  const [telegramStatus, setTelegramStatus] = useState<TelegramStatus>({ connected: false });
   const [connections, setConnections] = useState<GmailConnection[]>([]);
-  const [calendarStatus, setCalendarStatus] = useState<CalendarStatus>({
-    connected: false,
-    email: ""
-  });
-
+  const [calendarStatus, setCalendarStatus] = useState<CalendarStatus>({ connected: false, email: "" });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState("7d")
+  const [data, setData] = useState<EmailAIResponse[]>([])
 
+  // Frontend pagination
+  const [page, setPage] = useState(1)
+  const pageSize = 10
+
+  useEffect(() => {
+    fetchData()
+  }, [timeRange, user?.id])
+
+  async function fetchData() {
+    try {
+      setLoading(true)
+      setPage(1) // reset page on new filter
+
+      const res = await apiClient.get(
+        `/api/email-analytics?range=${timeRange}`
+      )
+
+      setData(res.data.data || [])
+    } catch (err: any) {
+      console.log(err)
+    } finally {
+      setLoading(false)
+    }
+  }
+  // ---------- Stats (calculated from FULL dataset) ----------
+  const totalJunk = data.filter((d) => (d.message_score ?? 0) < 40).length
+  const totalImportant = data.filter((d) => (d.message_score ?? 0) >= 70).length
   /* ------------------------------------
      Data fetchers
   ------------------------------------ */
-  const checkTelegramLink = async () => {
-    try {
-      const res = await apiClient.get(
-        `/api/telegram/check-link?userId=${user?.id}`
-      );
-      setTelegramStatus({
-        connected: true,
-        telegram_username: res.data.telegram_username,
-      });
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        setTelegramStatus({ connected: false });
-      } else {
-        setError("Failed to check Telegram connection.");
-      }
-    }
-  };
-
-  const fetchConnections = async () => {
-    try {
-      const res = await apiClient.get(
-        `/api/google/gmail-connections?userId=${user?.id}`
-      );
-      setConnections(res.data.data || []);
-    } catch {
-      setError("Failed to load Gmail connections.");
-    }
-  };
-
-  const checkCalendarLink = async () => {
-    try {
-      const res = await apiClient.get(
-        `/api/google/calendar-connection?userId=${user?.id}`
-      );
-      setCalendarStatus({
-        connected: res.data.data[0] ? true : false,
-        email: res.data.data[0].email_address,
-      });
-    } catch (err: any) {
-      if (err.response?.status === 404) {
-        setCalendarStatus({ connected: false, email: "" });
-      } else {
-        setError("Failed to check Calendar connection.");
-      }
-    }
-  };
-
   useEffect(() => {
     if (!user?.id) return;
-
     setLoading(true);
-    Promise.all([
-      checkTelegramLink(),
-      fetchConnections(),
-      checkCalendarLink(),
-    ]).finally(() => setLoading(false));
+
+    const checkTelegramLink = async () => {
+      try {
+        const res = await apiClient.get(`/api/telegram/check-link?userId=${user.id}`);
+        setTelegramStatus({ connected: true, telegram_username: res.data.telegram_username });
+      } catch {
+        setTelegramStatus({ connected: false });
+      }
+    };
+
+    const fetchConnections = async () => {
+      try {
+        const res = await apiClient.get(`/api/google/gmail-connections?userId=${user.id}`);
+        setConnections(res.data.data || []);
+      } catch {
+        setConnections([]);
+      }
+    };
+
+    const checkCalendarLink = async () => {
+      try {
+        const res = await apiClient.get(`/api/google/calendar-connection?userId=${user.id}`);
+        setCalendarStatus({ connected: !!res.data.data[0], email: res.data.data[0]?.email_address || "" });
+      } catch {
+        setCalendarStatus({ connected: false, email: "" });
+      }
+    };
+
+    Promise.all([checkTelegramLink(), fetchConnections(), checkCalendarLink()]).finally(() => setLoading(false));
   }, [user?.id]);
 
-  /* ------------------------------------
-     Plan logic
-  ------------------------------------ */
-  const hasActivePlan =
-    subscription?.status === "active" && subscription?.hasAccess;
+  const hasActivePlan = subscription?.status === "active" && subscription?.hasAccess;
 
-  const planLabel = hasActivePlan
-    ? subscription?.planName
-    : "No active plan";
+  const PLAN_GMAIL_LIMITS: Record<string, number> = { free_trial: 1, starter: 1, plus: 3, professional: Infinity };
+  const planName = subscription?.planName ?? "free_trial";
+  const gmailLimit = hasActivePlan ? PLAN_GMAIL_LIMITS[planName] : 0;
 
-  /* ------------------------------------
-     Render
-  ------------------------------------ */
-  if (!user) {
-    return (
-      <ContentLayout title="Dashboard">
-        <div className="text-sm text-muted-foreground">
-          Loading dashboard…
-        </div>
-      </ContentLayout>
-    );
-  }
+  const handleDisconnectGmail = async (email: string) => {
+    if (!session?.access_token || !user?.id) return;
+    try {
+      setLoading(true);
+      await apiClient.post("/api/auth/google/disconnect", { userId: user.id, email });
+      setConnections((prev) => prev.filter((conn) => conn.email_address !== email));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const CardSkeleton = () => (
+    <div className="space-y-3">
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-8 w-3/4" />
+      <Skeleton className="h-4 w-1/3" />
+    </div>
+  );
 
   return (
     <ContentLayout title="Dashboard">
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight">
-            Overview
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            Your integrations and subscription status
-          </p>
-        </div>
+      <div className="space-y-6 max-w-7xl mx-auto">
 
-        <Separator />
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Telegram */}
-          <Card className="flex flex-col justify-between">
-            <div>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Telegram Status
-                </CardTitle>
-                <Send className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <CardSkeleton />
-                ) : (
-                  <>
-                    <div
-                      className={`text-2xl font-bold ${telegramStatus.connected
-                        ? "text-green-600"
-                        : "text-muted-foreground"
-                        }`}
-                    >
-                      {telegramStatus.connected
-                        ? "Connected"
-                        : "Not connected"}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Bot integration
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </div>
-            <CardContent>
-              <Button asChild size="sm" className="w-full" disabled={loading}>
-                <Link href="/telegram">Manage Telegram</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Gmail */}
-          <Card className="flex flex-col justify-between">
-            <div>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Gmail Connections
-                </CardTitle>
-                <Mail className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <>
-                    <div className="text-2xl font-bold">
-                      {connections.length}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Linked mailboxes
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </div>
-            <CardContent>
-              <Button asChild size="sm" className="w-full" disabled={loading}>
-                <Link href="/email">Manage Gmail</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Calendar */}
-          <Card className="flex flex-col justify-between">
-            <div>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Google Calendar
-                </CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <CardSkeleton />
-                ) : (
-                  <>
-                    <div
-                      className={`text-2xl font-bold ${calendarStatus.connected
-                        ? "text-green-600"
-                        : "text-muted-foreground"
-                        }`}
-                    >
-                      {calendarStatus.connected
-                        ? "Connected"
-                        : "Not connected"}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Auto event creation
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </div>
-            <CardContent>
-              <Button asChild size="sm" className="w-full" disabled={loading}>
-                <Link href="/calendar">Manage Calendar</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Plan */}
-          <Card className="flex flex-col justify-between">
-            <div>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Current Plan
-                </CardTitle>
-                <BadgeCheck className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-
-              <CardContent>
-                {loading ? (
-                  <CardSkeleton />
-                ) : (
-                  <>
-                    <div
-                      className={`text-2xl font-bold capitalize ${hasActivePlan
-                        ? "text-foreground"
-                        : "text-muted-foreground"
-                        }`}
-                    >
-                      {planLabel}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {hasActivePlan
-                        ? "Subscription tier"
-                        : "No active subscription"}
-                    </p>
-                  </>
-                )}
-              </CardContent>
-            </div>
-
-            <CardContent>
-              <Button asChild size="sm" className="w-full" disabled={loading}>
-                <Link href="/billing">
-                  {hasActivePlan ? "Manage billing" : "View plans"}
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-        </div>
-        {/* Google Calendar UI Embed */}
-        <div className="mx-auto relative mt-6 rounded-xl overflow-hidden border bg-background shadow-sm w-full">
-
-          {/* Iframe */}
-          <iframe
-            src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(
-              calendarStatus.email || ""
-            )}&ctz=Asia/Singapore`}
-            width="100%"
-            height="600"
-            className={`w-full transition-all duration-300 ${!calendarStatus.connected ? "blur-sm pointer-events-none select-none" : ""
-              }`}
-          />
-
-          {/* Locked Overlay */}
-          {!calendarStatus.connected && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm text-center p-6 space-y-4">
-
-              <div className="text-lg font-semibold">
-                Connect Google Calendar to Unlock
+        {/* Warning Alerts */}
+        <div className="space-y-4 max-w-2xl">
+          {/* Telegram Alert */}
+          {!telegramStatus.connected && (
+            <Alert
+              variant="default"
+              className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-border shadow-sm p-3 gap-2"
+              style={{
+                backgroundColor: "hsl(var(--card))",
+                color: "hsl(var(--card-foreground))",
+              }}
+            >
+              {/* Left: icon + title + description */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <AlertTriangleIcon className="h-4 w-4 text-yellow-600 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <AlertTitle className="text-sm font-medium text-yellow-600">
+                    Telegram Not Linked
+                  </AlertTitle>
+                  <p className="text-xs text-muted-foreground mt-1 sm:mt-0">
+                    Link your Telegram account to get started and enable all features.
+                  </p>
+                </div>
               </div>
 
-              <p className="text-sm text-muted-foreground max-w-md">
-                Link your Google Calendar to automatically create events from
-                important emails with deadlines and meetings.
-              </p>
-
-              <Button
-                onClick={() => router.push("/calendar")}
-                className="mt-2"
-              >
-                Connect Calendar
+              {/* Right: CTA button */}
+              <Button asChild size="sm" variant="outline" className="mt-2 sm:mt-0">
+                <Link href="/account">Link Telegram</Link>
               </Button>
-            </div>
+            </Alert>
+
+
+          )}
+
+          {/* Gmail Alert */}
+          {hasActivePlan && connections.length === 0 && telegramStatus.connected && (
+            <Alert variant="destructive" className="flex flex-col sm:flex-row items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangleIcon className="h-4 w-4 text-yellow-600" />
+                <AlertTitle className="text-sm font-medium text-yellow-600">
+                  No Gmail Connections
+                </AlertTitle>
+              </div>
+              <div className="mt-2 sm:mt-0">
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/email">Connect Gmail</Link>
+                </Button>
+              </div>
+            </Alert>
           )}
         </div>
 
+        {/* Gmail Connections Table */}
+        <div className="mt-6">
+          <h3 className="text-lg font-medium mb-3">Gmail Connections</h3>
+          <div className={`relative overflow-x-auto rounded-md border ${(!hasActivePlan || !telegramStatus.connected) ? "blur-sm pointer-events-none select-none" : ""}`}>
+            <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
+              <div className="col-span-3">Connection Name</div>
+              <div className="col-span-4">Email Address</div>
+              <div className="col-span-3">Filter</div>
+              <div className="col-span-2 text-right">Actions</div>
+            </div>
+
+            {connections.map((conn, idx) => (
+              <div key={conn.id} className="grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0">
+                <div className="col-span-3 font-medium">{conn.connection_name || `Connection ${idx + 1}`}</div>
+                <div className="col-span-4 flex items-center gap-2 text-muted-foreground"><Mail className="h-4 w-4" /> {conn.email_address}</div>
+                <div className="col-span-3 text-muted-foreground">{conn.filter_name || "Default"}</div>
+                <div className="col-span-2 flex justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => router.push(`/integrations/${conn.id}/edit`)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
+                  <Button variant="destructive" size="sm" onClick={() => handleDisconnectGmail(conn.email_address)} disabled={loading}><FaUnlink className="h-4 w-4 mr-1" /> Disconnect</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Stats Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center mb-3 gap-2">
+          <h3 className="text-lg font-medium">Email Analytics</h3>
+
+          <Button asChild variant="secondary" size="sm" className="ml-2">
+            <Link href="/email-analytics" className="text-center">
+              View Full Email Analytics
+            </Link>
+          </Button>
+        </div>
+
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Junk Emails</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-bold text-red-500">{totalJunk}</p>
+              <p className="text-sm text-muted-foreground">
+                Emails with score below 40
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Total Important Emails</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-4xl font-bold text-green-600">{totalImportant}</p>
+              <p className="text-sm text-muted-foreground">
+                Emails with score 70+
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+
+        {/* Google Calendar Embed */}
+        <h3 className="text-lg font-medium mb-3">Your Calendar</h3>
+        <div className="mx-auto relative mt-6 rounded-xl overflow-hidden border bg-background shadow-sm w-full">
+          <iframe
+            src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarStatus.email || "")}&ctz=Asia/Singapore`}
+            width="100%"
+            height="600"
+            className={`w-full transition-all duration-300 ${!calendarStatus.connected ? "blur-sm pointer-events-none select-none" : ""}`}
+          />
+          {!calendarStatus.connected && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm text-center p-6 space-y-4">
+              <div className="text-lg font-semibold">Connect Google Calendar to Unlock</div>
+              <p className="text-sm text-muted-foreground max-w-md">Link your Google Calendar to automatically create events from important emails with deadlines and meetings.</p>
+              <Button onClick={() => router.push("/calendar")} className="mt-2">Connect Calendar</Button>
+            </div>
+          )}
+        </div>
       </div>
     </ContentLayout>
   );

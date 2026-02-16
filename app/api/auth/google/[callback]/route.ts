@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     if (!code || !stateEncoded) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=denied`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=denied`
       );
     }
 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
     if (!userId) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=invalid_state`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=invalid_state`
       );
     }
 
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
     const email = profile.email;
     if (!email) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=no_email`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=no_email`
       );
     }
 
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
 
     if (subError || !subscription) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=no_subscription`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=no_subscription`
       );
     }
 
@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
       subscription.status === "past_due"
     ) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=inactive_plan`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=inactive_plan`
       );
     }
 
@@ -100,13 +100,13 @@ export async function GET(req: NextRequest) {
     if (countError) {
       console.error("Failed to count Gmail connections:", countError);
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=server`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=server`
       );
     }
 
     if (gmailLimit !== Infinity && (count ?? 0) >= gmailLimit) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=limit_reached`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=limit_reached`
       );
     }
 
@@ -134,7 +134,7 @@ export async function GET(req: NextRequest) {
     if (tokenError) {
       console.error("Failed to upsert Gmail tokens:", tokenError);
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=server`
+        `${process.env.NEXT_PUBLIC_APP_URL}/account?error=server`
       );
     }
 
@@ -170,12 +170,12 @@ export async function GET(req: NextRequest) {
        9️⃣ Redirect back to UI
     ---------------------------------------- */
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/integrations?success=true`
+      `${process.env.NEXT_PUBLIC_APP_URL}/account?success=true`
     );
   } catch (err) {
     console.error("Gmail OAuth callback error:", err);
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/integrations?error=server`
+      `${process.env.NEXT_PUBLIC_APP_URL}/account?error=server`
     );
   }
 }
