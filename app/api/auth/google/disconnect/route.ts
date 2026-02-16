@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { createClientWithToken } from "@/lib/supabase/clientWithToken";
 import { oauth2Client } from "@/lib/google";
-import { decrypt } from "@/lib/encryption/helper";
+import { decrypt, safeDecrypt } from "@/lib/encryption/helper";
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
     let decryptedRefreshToken: string | undefined;
 
     try {
-      decryptedAccessToken = gmailToken.access_token ? decrypt(gmailToken.access_token) : undefined;
-      decryptedRefreshToken = gmailToken.refresh_token ? decrypt(gmailToken.refresh_token) : undefined;
+      decryptedAccessToken = gmailToken.access_token ? safeDecrypt(gmailToken.access_token) : undefined;
+      decryptedRefreshToken = gmailToken.refresh_token ? safeDecrypt(gmailToken.refresh_token) : undefined;
     } catch (decryptErr) {
       console.error("Failed to decrypt Gmail tokens:", decryptErr);
       return NextResponse.json(

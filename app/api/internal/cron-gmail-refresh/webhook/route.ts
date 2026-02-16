@@ -3,7 +3,7 @@ import { Receiver } from "@upstash/qstash";
 import { createClient } from "@/lib/supabase/server";
 import { google } from "googleapis";
 import { oauth2Client } from "@/lib/google";
-import { decrypt } from "@/lib/encryption/helper";
+import { decrypt, safeDecrypt } from "@/lib/encryption/helper";
 
 /* ------------------------------
    QStash Cron Webhook Handler
@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
             for (const gmailToken of gmailConnections) {
                 try {
                     // Decrypt tokens
-                    const access_token = decrypt(gmailToken.access_token);
-                    const refresh_token = decrypt(gmailToken.refresh_token);
+                    const access_token = safeDecrypt(gmailToken.access_token);
+                    const refresh_token = safeDecrypt(gmailToken.refresh_token);
 
                     // Set OAuth credentials
                     oauth2Client.setCredentials({
