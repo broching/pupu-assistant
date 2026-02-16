@@ -110,7 +110,7 @@ export default function CalendarRow({ session, user, apiClient }: CalendarRowPro
         ) : (
           <>
             {/* Conditional Alert */}
-            { !isActiveSubscription ? (
+            { !isActiveSubscription && subscription?.planName !== "free_trial" ? (
               <div className="flex items-center gap-2 text-yellow-600 text-xs font-medium">
                 <AlertTriangleIcon className="h-4 w-4" />
                 <span>Upgrade to a paid plan</span>
@@ -127,7 +127,7 @@ export default function CalendarRow({ session, user, apiClient }: CalendarRowPro
               size="sm"
               variant="outline"
               onClick={handleConnectCalendar}
-              disabled={!isActiveSubscription}
+              disabled={(!isActiveSubscription && subscription?.planName !== "free_trial") ? true : false}
               className="flex items-center"
               id="connect-calendar-button"
             >
