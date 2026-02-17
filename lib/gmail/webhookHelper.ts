@@ -8,6 +8,7 @@ import { decrypt, safeDecrypt } from "../encryption/helper";
 import { NextRequest } from "next/server";
 import { calendar } from "googleapis/build/src/apis/calendar";
 import { createServerClient } from "@supabase/ssr";
+import { EmailAnalysisResult, FilterConfig } from "../geminiAI/geminiSchemas";
 
 /* ------------------------------
    Helper: parse Pub/Sub payload
@@ -190,7 +191,7 @@ export async function processHistories(
     gmail: any,
     histories: any[],
     userTokens: any,
-    filter: any
+    filter: FilterConfig
 ) {
     const hasAccess = await canAccessPlan(userTokens.user_id, "free_trial");
     if (!hasAccess) {
@@ -247,17 +248,6 @@ export async function processHistories(
                 const email = parseGmailMessage(fullMessage.data);
 
                 // ==================================================
-                // STEP 2: Signals
-                // ==================================================
-                const signals = extractEmailSignals(email);
-
-                const booleanOverride =
-                    (filter.enable_first_time_sender_alert && signals.isFirstTimeSender) ||
-                    (filter.enable_thread_reply_alert && signals.isThreadReply) ||
-                    (filter.enable_deadline_alert && signals.hasDeadline) ||
-                    (filter.enable_subscription_payment_alert && signals.isSubscription);
-
-                // ==================================================
                 // STEP 3: AI analysis (ONLY ONE CALL EVER)
                 // ==================================================
                 const analysis = await analyzeEmailWithAI({
@@ -267,15 +257,9 @@ export async function processHistories(
                     filter,
                 });
 
-                const score = analysis.emailAnalysis.messageScore;
-                const mode = filter.notification_mode ?? "balanced";
-
-                const scorePass =
-                    (mode === "aggressive" && score >= 30) ||
-                    (mode === "balanced" && score >= 50) ||
-                    (mode === "minimal" && score >= 70);
-
-                const shouldSendTelegram = booleanOverride || scorePass;
+                const finalScore = calculateFinalScore(analysis, filter)
+                console.log('filter score', filter.min_score_for_telegram)
+                console.log('analysis result',analysis.emailAnalysis.messageScore, finalScore, analysis.emailAnalysis.categories)
 
                 // ==================================================
                 // STEP 4: FINALIZE ROW
@@ -286,19 +270,22 @@ export async function processHistories(
                         message_status: "completed",
                         reply_message: analysis.emailAnalysis.replyMessage,
                         calendar: analysis.emailAnalysis.calendarEvent,
-                        message_score: score,
+                        message_score: finalScore,
                         flagged_keywords: analysis.emailAnalysis.keywordsFlagged,
                         usage_tokens: analysis.usageTokens ?? null,
                         updated_at: new Date().toISOString(),
                     })
                     .eq("id", responseRowId);
 
-                if (!shouldSendTelegram) continue;
 
                 // ==================================================
                 // STEP 5: Telegram
                 // ==================================================
-                if (shouldSendTelegram) {
+                if (finalScore < filter.min_score_for_telegram)
+                {
+                    console.log(`message skipped for telegram, score below treshold:${finalScore} < ${filter.min_score_for_telegram}`)
+                    return
+                }
                     const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
                     const replyUserMessage =
                         `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
@@ -330,9 +317,9 @@ export async function processHistories(
                     );
 
                     console.log(
-                        `✅ Sent Telegram for message ${msg.id} (override=${booleanOverride}, score=${score})`
+                        `✅ Sent Telegram for message ${msg.id} ( score=${finalScore})`
                     );
-                }
+                
 
 
             } catch (err) {
@@ -449,4 +436,59 @@ export async function getUserFilter(userId: string, filterId: string) {
     }
 
     return filter;
+}
+
+/**
+ * Calculate final score for an email based on AI score and filter weights
+ */
+export function calculateFinalScore(
+  analysis: EmailAnalysisResult,
+  filter: FilterConfig
+): number {
+  const { messageScore, categories } = analysis.emailAnalysis;
+
+  // 1️⃣ Message score contribution (50%)
+  const messageScoreContribution = messageScore * 0.5;
+
+  // 2️⃣ Primary category contribution
+  let primaryScore = 0;
+  if (categories.primary.subcategory.length > 0) {
+    const sumPrimary = categories.primary.subcategory.reduce((sum, subKey) => {
+      // @ts-ignore - filter has all subcategory keys
+      return sum + (filter[subKey] ?? 0);
+    }, 0);
+
+    const avgPrimary = sumPrimary / categories.primary.subcategory.length;
+    primaryScore = avgPrimary;
+  }
+
+  // 3️⃣ Secondary category contribution
+  let secondaryScore = 0;
+  if (categories.secondary.length > 0) {
+    let sumSecondary = 0;
+    let countSecondary = 0;
+
+    categories.secondary.forEach(sec => {
+      sec.subcategory.forEach(subKey => {
+        // @ts-ignore
+        sumSecondary += filter[subKey] ?? 0;
+        countSecondary++;
+      });
+    });
+
+    if (countSecondary > 0) {
+      secondaryScore = (sumSecondary / countSecondary) * 0.15;
+    }
+  }
+
+  // 4️⃣ If no secondary categories, primary contribution is 50% instead of 35%
+  const primaryWeight = categories.secondary.length === 0 ? 0.5 : 0.35;
+  const secondaryWeight = categories.secondary.length === 0 ? 0 : 0.15;
+
+  const finalScore =
+    messageScoreContribution +
+    primaryScore * primaryWeight +
+    secondaryScore; // secondaryScore already multiplied by 0.15 above
+
+  return Math.min(finalScore, 100); // cap at 100
 }
