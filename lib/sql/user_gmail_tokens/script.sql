@@ -21,7 +21,9 @@ create table if not exists user_gmail_tokens (
     watch_expiration bigint,
 
     connection_name text null,
-    filter_id uuid null,
+
+    -- New foreign key to filters
+    filter_id uuid null references filters(id) on delete set null,
     filter_name text null,
 
     created_at timestamptz default now(),

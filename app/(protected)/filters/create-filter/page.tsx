@@ -148,24 +148,58 @@ export default function SmartNotificationRulesPage() {
                         </div>
                     </div>
 
-                    {/* Watch / Ignore Tags */}
-                    <TagInput
-                        placeholder="Type a keyword and press Enter"
-                        tags={watchTags}
-                        value={watchInput}
-                        onValueChange={setWatchInput}
-                        onAddTag={tag => setWatchTags([...watchTags, tag])}
-                        onRemoveTag={tag => setWatchTags(watchTags.filter(t => t !== tag))}
-                    />
+                    {/* Watch Tags */}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Label>Watch Tags</Label>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-sm">
+                                        These are keywords that the AI should watch out for in incoming emails.
+                                        Emails containing these keywords will have higher importance scores.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                        <TagInput
+                            placeholder="Type a keyword and press Enter"
+                            tags={watchTags}
+                            value={watchInput}
+                            onValueChange={setWatchInput}
+                            onAddTag={tag => setWatchTags([...watchTags, tag])}
+                            onRemoveTag={tag => setWatchTags(watchTags.filter(t => t !== tag))}
+                        />
+                    </div>
 
-                    <TagInput
-                        placeholder="Type a keyword and press Enter"
-                        tags={ignoreTags}
-                        value={ignoreInput}
-                        onValueChange={setIgnoreInput}
-                        onAddTag={tag => setIgnoreTags([...ignoreTags, tag])}
-                        onRemoveTag={tag => setIgnoreTags(ignoreTags.filter(t => t !== tag))}
-                    />
+                    {/* Ignore Tags */}
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Label>Ignore Tags</Label>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-sm">
+                                        These are keywords that the AI should ignore when calculating the email score.
+                                        Emails containing these keywords will be considered less important.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                        <TagInput
+                            placeholder="Type a keyword and press Enter"
+                            tags={ignoreTags}
+                            value={ignoreInput}
+                            onValueChange={setIgnoreInput}
+                            onAddTag={tag => setIgnoreTags([...ignoreTags, tag])}
+                            onRemoveTag={tag => setIgnoreTags(ignoreTags.filter(t => t !== tag))}
+                        />
+                    </div>
+
 
                     <Separator />
 
@@ -187,6 +221,7 @@ export default function SmartNotificationRulesPage() {
                                                     <span className="mb-1">{weights[sub.key]}</span>
                                                 </div>
                                                 <Slider
+                                                    className="mt-1"
                                                     value={[weights[sub.key]]}
                                                     min={0}
                                                     max={100}

@@ -234,6 +234,7 @@ export default function EditNotificationFilterPage() {
                                                     <span className="mb-1">{weights[sub.key]}</span>
                                                 </div>
                                                 <Slider
+                                                    className="mt-1"
                                                     value={[weights[sub.key] ?? 50]}
                                                     min={0}
                                                     max={100}

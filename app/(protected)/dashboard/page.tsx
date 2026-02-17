@@ -202,7 +202,7 @@ useEffect(() => {
               </div>
               <div className="mt-2 sm:mt-0">
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/email">Connect Gmail</Link>
+                  <Link href="/account">Connect Gmail</Link>
                 </Button>
               </div>
             </Alert>
@@ -285,7 +285,7 @@ useEffect(() => {
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm text-center p-6 space-y-4">
               <div className="text-lg font-semibold">Connect Google Calendar to Unlock</div>
               <p className="text-sm text-muted-foreground max-w-md">Link your Google Calendar to automatically create events from important emails with deadlines and meetings.</p>
-              <Button onClick={() => router.push("/calendar")} className="mt-2">Connect Calendar</Button>
+              <Button onClick={() => router.push("/account")} className="mt-2">Connect Calendar</Button>
             </div>
           )}
         </div>
