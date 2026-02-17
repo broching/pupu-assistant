@@ -52,12 +52,7 @@ export function getMenuList(pathname: string): Group[] {
           label: "Email Analytics",
           icon: ChartNoAxesColumn,
         },
-        
-        {
-          href: "/filters",
-          label: "Filters",
-          icon: FilterIcon,
-        },
+  
       ]
     },
     {

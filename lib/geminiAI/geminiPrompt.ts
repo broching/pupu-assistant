@@ -79,11 +79,8 @@ Category Rules:
 Available Categories / Subcategories:
 ${JSON.stringify(CATEGORIES, null, 2)}
 
-==============================
-Filters (for context, DO NOT MENTION IN OUTPUT):
-==============================
-- Watch tags: ${filter.watch_tags.join(", ")}
-- Ignore tags: ${filter.ignore_tags.join(", ")}
+These are the custom categories the user has set:
+${JSON.stringify(filter.custom_catgeories, null, 2)}
 
 ==============================
 Email Info:

@@ -73,57 +73,57 @@ export default function Dashboard() {
   /* ------------------------------------
      Data fetchers
   ------------------------------------ */
-useEffect(() => {
-  if (!user?.id) return;
-  if (!tourLoaded) return; // 🔥 Wait until tour is finalized
+  useEffect(() => {
+    if (!user?.id) return;
+    if (!tourLoaded) return; // 🔥 Wait until tour is finalized
 
-  if (!tour) {
-    router.push("/account");
-    return;
-  }
-
-  setLoading(true);
-
-  const checkTelegramLink = async () => {
-    try {
-      const res = await apiClient.get(`/api/telegram/check-link?userId=${user.id}`);
-      setTelegramStatus({
-        connected: true,
-        telegram_username: res.data.telegram_username,
-      });
-    } catch {
-      setTelegramStatus({ connected: false });
+    if (!tour) {
+      router.push("/account");
+      return;
     }
-  };
 
-  const fetchConnections = async () => {
-    try {
-      const res = await apiClient.get(`/api/google/gmail-connections?userId=${user.id}`);
-      setConnections(res.data.data || []);
-    } catch {
-      setConnections([]);
-    }
-  };
+    setLoading(true);
 
-  const checkCalendarLink = async () => {
-    try {
-      const res = await apiClient.get(`/api/google/calendar-connection?userId=${user.id}`);
-      setCalendarStatus({
-        connected: !!res.data.data[0],
-        email: res.data.data[0]?.email_address || "",
-      });
-    } catch {
-      setCalendarStatus({ connected: false, email: "" });
-    }
-  };
+    const checkTelegramLink = async () => {
+      try {
+        const res = await apiClient.get(`/api/telegram/check-link?userId=${user.id}`);
+        setTelegramStatus({
+          connected: true,
+          telegram_username: res.data.telegram_username,
+        });
+      } catch {
+        setTelegramStatus({ connected: false });
+      }
+    };
 
-  Promise.all([
-    checkTelegramLink(),
-    fetchConnections(),
-    checkCalendarLink(),
-  ]).finally(() => setLoading(false));
+    const fetchConnections = async () => {
+      try {
+        const res = await apiClient.get(`/api/google/gmail-connections?userId=${user.id}`);
+        setConnections(res.data.data || []);
+      } catch {
+        setConnections([]);
+      }
+    };
 
-}, [user?.id, tourLoaded, tour]);
+    const checkCalendarLink = async () => {
+      try {
+        const res = await apiClient.get(`/api/google/calendar-connection?userId=${user.id}`);
+        setCalendarStatus({
+          connected: !!res.data.data[0],
+          email: res.data.data[0]?.email_address || "",
+        });
+      } catch {
+        setCalendarStatus({ connected: false, email: "" });
+      }
+    };
+
+    Promise.all([
+      checkTelegramLink(),
+      fetchConnections(),
+      checkCalendarLink(),
+    ]).finally(() => setLoading(false));
+
+  }, [user?.id, tourLoaded, tour]);
 
 
   const hasActivePlan = subscription?.status === "active" && subscription?.hasAccess;
@@ -214,18 +214,16 @@ useEffect(() => {
           <h3 className="text-lg font-medium mb-3">Gmail Connections</h3>
           <div className={`relative overflow-x-auto rounded-md border ${(!hasActivePlan || !telegramStatus.connected) ? "blur-sm pointer-events-none select-none" : ""}`}>
             <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
-              <div className="col-span-3">Connection Name</div>
-              <div className="col-span-4">Email Address</div>
-              <div className="col-span-3">Filter</div>
-              <div className="col-span-2 text-right">Actions</div>
+              <div className="col-span-8">Email Address</div>
+              <div className="col-span-4 text-right">Actions</div>
             </div>
 
             {connections.map((conn, idx) => (
               <div key={conn.id} className="grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0">
-                <div className="col-span-3 font-medium">{conn.connection_name || `Connection ${idx + 1}`}</div>
-                <div className="col-span-4 flex items-center gap-2 text-muted-foreground"><Mail className="h-4 w-4" /> {conn.email_address}</div>
-                <div className="col-span-3 text-muted-foreground">{conn.filter_name || "Default"}</div>
-                <div className="col-span-2 flex justify-end gap-2">
+
+                <div className="col-span-8 flex items-center gap-2 text-muted-foreground"><Mail className="h-4 w-4" /> {conn.email_address}</div>
+
+                <div className="col-span-4 flex justify-end gap-2">
                   <Button variant="outline" size="sm" onClick={() => router.push(`/integrations/${conn.id}/edit`)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
                   <Button variant="destructive" size="sm" onClick={() => handleDisconnectGmail(conn.email_address)} disabled={loading}><FaUnlink className="h-4 w-4 mr-1" /> Disconnect</Button>
                 </div>
