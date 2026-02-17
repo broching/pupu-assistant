@@ -29,16 +29,22 @@ export async function sendTelegramMessage(
 
     const chatId = data.telegram_chat_id;
 
-    // 2️⃣ Build Telegram payload
+    // 2️⃣ Sanitize the message if using HTML parse_mode
+    let sanitizedMessage = message;
+    if ((options?.parse_mode ?? "HTML") === "HTML") {
+      sanitizedMessage = sanitizeTelegramHTML(message);
+    }
+
+    // 3️⃣ Build Telegram payload
     const payload = {
       chat_id: chatId,
-      text: message,
+      text: sanitizedMessage,
       parse_mode: options?.parse_mode ?? "HTML",
       disable_web_page_preview: options?.disable_web_page_preview ?? true,
       ...(options?.reply_markup && { reply_markup: options.reply_markup }),
     };
 
-    // 3️⃣ Send message via Telegram API
+    // 4️⃣ Send message via Telegram API
     const telegramRes = await fetch(
       `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
       {
@@ -62,4 +68,40 @@ export async function sendTelegramMessage(
     console.error("sendTelegramMessage error:", err);
     return { success: false, error: err };
   }
+}
+
+
+/**
+ * Sanitize a message for Telegram HTML parse_mode
+ *
+ * - Allows <b>, <i>, <u>, <s>, <a href="...">, <code>, <pre>
+ * - Escapes all other angle brackets
+ */
+export function sanitizeTelegramHTML(input: string): string {
+  if (!input) return "";
+
+  // Step 1: Escape all < and > first
+  let sanitized = input
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Step 2: Re-allow the valid Telegram HTML tags
+  // Regex to match allowed tags
+  const allowedTags = [
+    /&lt;b&gt;(.*?)&lt;\/b&gt;/gi,
+    /&lt;i&gt;(.*?)&lt;\/i&gt;/gi,
+    /&lt;u&gt;(.*?)&lt;\/u&gt;/gi,
+    /&lt;s&gt;(.*?)&lt;\/s&gt;/gi,
+    /&lt;a href="(.*?)"&gt;(.*?)&lt;\/a&gt;/gi,
+    /&lt;code&gt;(.*?)&lt;\/code&gt;/gi,
+    /&lt;pre&gt;(.*?)&lt;\/pre&gt;/gi,
+  ];
+
+  allowedTags.forEach((regex) => {
+    sanitized = sanitized.replace(regex, (match) =>
+      match.replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    );
+  });
+
+  return sanitized;
 }

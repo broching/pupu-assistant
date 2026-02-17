@@ -299,7 +299,7 @@ export async function processHistories(
                     ];
 
                     // Add "Add to Calendar" button if calendarEvent exists
-                    if (analysis.emailAnalysis.calendarEvent) {
+                    if (analysis.emailAnalysis.calendarEvent?.start && analysis.emailAnalysis.calendarEvent.end) {
                         const { summary, start, end } = analysis.emailAnalysis.calendarEvent;
                         // Optional: encode event as JSON for callback_data, or just a unique identifier
                         const calendarCallback = `add_calendar:${msg.id}`; // you can handle this callback separately
