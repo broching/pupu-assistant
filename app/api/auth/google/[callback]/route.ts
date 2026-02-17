@@ -113,8 +113,8 @@ export async function GET(req: NextRequest) {
     /* ----------------------------------------
        7️⃣ Upsert Gmail tokens (SAFE)
     ---------------------------------------- */
-    const encryptedAccessToken= encrypt(tokens?.access_token?? "")
-    const encryptedRefreshToken = encrypt(tokens?.refresh_token?? "")
+    const encryptedAccessToken = encrypt(tokens?.access_token ?? "")
+    const encryptedRefreshToken = encrypt(tokens?.refresh_token ?? "")
     const { error: tokenError } = await supabase
       .from("user_gmail_tokens")
       .upsert(
@@ -152,26 +152,45 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      await supabase
+      const { data, error } = await supabase
         .from("user_gmail_tokens")
-        .update({
-          watch_history_id: watchRes.data.historyId,
-          watch_expiration: watchRes.data.expiration,
-          updated_at: new Date().toISOString(),
-        })
+        .update(
+          {
+            watch_history_id: watchRes.data.historyId,
+            watch_expiration: watchRes.data.expiration,
+            updated_at: new Date().toISOString(),
+          },
+        )
         .eq("user_id", userId)
-        .eq("email_address", email);
+        .eq("email_address", email)
+        .select("id");
+
+      if (error) {
+        console.error("Failed to update Gmail token:", error);
+        // handle error or throw
+      }
+
+      // `data` is always an array of updated rows
+      const updatedId = data?.[0]?.id;
+
+      if (!updatedId) {
+        throw new Error("Failed to get updated row id");
+      }
+
+      /* ----------------------------------------
+        9️⃣ Redirect back to UI
+      ---------------------------------------- */
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/integrations/${updatedId}/edit?success=true`
+      );
+
+
     } catch (watchErr) {
       // Never block OAuth success
       console.error("Failed to enable Gmail watch:", watchErr);
     }
 
-    /* ----------------------------------------
-       9️⃣ Redirect back to UI
-    ---------------------------------------- */
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/account?success=true`
-    );
+
   } catch (err) {
     console.error("Gmail OAuth callback error:", err);
     return NextResponse.redirect(
