@@ -1,32 +1,29 @@
 // Calendar event object
 export type CalendarEvent = {
-    summary?: string | null;       // optional, can be null
-    location?: string | null;      // optional, can be null
-    description?: string | null;   // optional, can be null
-    start: string;                 // REQUIRED, ISO 8601 string, cannot be null
-    end: string;                   // REQUIRED, ISO 8601 string, cannot be null
+  summary?: string | null;       // optional, can be null
+  location?: string | null;      // optional, can be null
+  description?: string | null;   // optional, can be null
+  start: string;                 // REQUIRED, ISO 8601 string, cannot be null
+  end: string;                   // REQUIRED, ISO 8601 string, cannot be null
 };
 
 // Existing email analysis result
 export type EmailAnalysisResult = {
-    emailAnalysis: {
-        messageScore: number;
-        keywordsFlagged: string[];
-        replyMessage: string;
-        datelineDate: string;
-        calendarEvent: CalendarEvent | null;  // optional, can add if email triggers an event
-        categories: CategoriesObject
-    };
-    usageTokens: any;
+  emailAnalysis: {
+    messageScore: number;
+    keywordsFlagged: string[];
+    replyMessage: string;
+    datelineDate: string;
+    calendarEvent: CalendarEvent | null;  // optional, can add if email triggers an event
+    categories: CategoriesObject
+  };
+  usageTokens: any;
 };
 
 // Filter configuration
 export type FilterConfig = {
   // General settings
   filter_name: string;
-  notification_mode: "minimal" | "balanced" | "aggressive";
-  watch_tags: string[];
-  ignore_tags: string[];
   min_score_for_telegram: number;
 
   // AI category weights (0-100)
@@ -72,6 +69,20 @@ export type FilterConfig = {
   misc_feedback_request: number;
   misc_legal_notice: number;
   misc_internal_communication: number;
+
+  // Boolean toggles for main categories
+  toggle_financial: boolean,
+  toggle_marketing: boolean
+  toggle_deadline: boolean,
+  toggle_operational: boolean,
+  toggle_personal: boolean,
+  toggle_misc: boolean,
+  toggle_custom: boolean,
+  toggle_security: boolean,
+
+  // Custom categories (JSON object)
+  custom_categories: {}, // should be an object like { birthday: 80, message_from_mom: 100 }
+
 };
 
 
@@ -88,22 +99,6 @@ export type CategoriesObject = {
 
 export const defaultFilter = {
   filter_name: "Default filter",
-  notification_mode: "balanced",
-  watch_tags: [
-    "invoice",
-    "payment",
-    "subscription",
-    "receipt",
-    "approval",
-    "deadline",
-    "contract",
-    "meeting",
-    "security",
-    "verification",
-    "promotion",
-    "deal",
-  ],
-  ignore_tags: [],
 
   // Financial / Payments
   financial_subscription_renewal: 100,

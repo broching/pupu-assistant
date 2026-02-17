@@ -80,19 +80,14 @@ export async function PUT(
         }
 
         const body = await req.json();
-        const { connection_name, filter_id, filter_name } = body;
+        const {  filter_id } = body;
 
-        if (!connection_name || typeof connection_name !== "string") {
-            return NextResponse.json({ error: "connection_name is required" }, { status: 400 });
-        }
 
         // Update the Gmail connection
         const { data, error } = await supabase
             .from("user_gmail_tokens")
             .update({
-                connection_name: connection_name.trim(),
                 filter_id: filter_id || null,// null if default
-                filter_name: filter_name
             })
             .eq("id", connectionId)
             .eq("user_id", user.id)

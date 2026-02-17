@@ -110,8 +110,40 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
-
+    if (deleteError) {
+      console.error(deleteError);
+      return NextResponse.json(
+        { error: "Failed to delete Gmail connection" },
+        { status: 500 }
+      );
+    }
     console.log("Deleted Gmail connection:", data);
+
+    /* ------------------------------------
+    8 Delete filter connection
+    ------------------------------------ */
+
+    // If no filter_id, skip delete entirely
+    if (!gmailToken?.filter_id) {
+      console.log("No filter connection found — skipping delete");
+    } else {
+      const { error } = await supabase
+        .from("filters")
+        .delete()
+        .eq("user_id", userId)
+        .eq("id", gmailToken.filter_id);
+
+      if (error) {
+        console.error(error);
+        return NextResponse.json(
+          { error: "Failed to delete filter connection" },
+          { status: 500 }
+        );
+      }
+
+      console.log("Deleted filter (if existed)");
+    }
+
 
     /* ------------------------------------
        8️⃣ Success

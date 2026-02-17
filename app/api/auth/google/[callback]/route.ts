@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
         )
         .eq("user_id", userId)
         .eq("email_address", email)
-        .select("id");
+        .select("*");
 
       if (error) {
         console.error("Failed to update Gmail token:", error);
@@ -175,6 +175,92 @@ export async function GET(req: NextRequest) {
 
       if (!updatedId) {
         throw new Error("Failed to get updated row id");
+      }
+
+      // create filter and link to connection 
+
+      // Explicit payload mapping
+      const payload = {
+        user_id: data?.[0]?.user_id,
+        email_connection_id: updatedId,
+
+        toggle_financial: true,
+        toggle_marketing: true,
+        toggle_security: true,
+        toggle_deadline: true,
+        toggle_operational: true,
+        toggle_personal: true,
+        toggle_misc: true,
+        toggle_custom: false,
+
+        financial_subscription_renewal: 50,
+        financial_payment_receipt: 50,
+        financial_refund_notice: 50,
+        financial_invoice: 50,
+        financial_failed_payment: 50,
+
+        marketing_newsletter: 50,
+        marketing_promotion: 50,
+        marketing_seasonal_campaign: 50,
+        marketing_discount_offer: 50,
+        marketing_product_update: 50,
+
+        security_alert: 50,
+        security_login_alert: 50,
+        security_mfa_change: 50,
+
+        deadline_explicit_deadline: 50,
+        deadline_event_invite: 50,
+        deadline_subscription_cutoff: 50,
+        deadline_billing_due_date: 50,
+
+        operational_system_update: 50,
+        operational_service_outage: 50,
+        operational_delivery_status: 50,
+        operational_support_ticket_update: 50,
+
+        personal_direct_message: 50,
+        personal_meeting_request: 50,
+        personal_social_media_notification: 50,
+        personal_event_reminder: 50,
+
+        misc_survey_request: 50,
+        misc_feedback_request: 50,
+        misc_legal_notice: 50,
+        misc_internal_communication: 50,
+
+        custom_categories: {},
+        min_score_for_telegram: 50
+      };
+
+
+      const { data: filterData, error: filterError } = await supabase
+        .from("filters")
+        .insert(payload)
+        .select()
+        .single();
+
+      if (filterError) {
+        return NextResponse.json({ error: filterError.message }, { status: 400 });
+      }
+
+      console.log('filter created successfully', filterData)
+
+      // update gmail connections to insert the filter_id
+      const { error: connectionError } = await supabase
+        .from("user_gmail_tokens")
+        .update(
+          {
+            filter_id: filterData.id
+          },
+        )
+        .eq("user_id", userId)
+        .eq("email_address", email)
+        .select("*");
+
+      if (connectionError) {
+        console.error("Failed to update Gmail token with filterID:", connectionError);
+        // handle error or throw
       }
 
       /* ----------------------------------------

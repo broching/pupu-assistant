@@ -39,7 +39,6 @@ export async function getUserTokens(supabase: Awaited<ReturnType<typeof createCl
     if (error || !data) {
         throw new Error("User tokens not found");
     }
-    console.log(data)
     data.access_token = safeDecrypt(data.access_token)
     data.refresh_token = safeDecrypt(data.refresh_token)
     return data;
@@ -259,12 +258,12 @@ export async function processHistories(
 
                 const finalScore = calculateFinalScore(analysis, filter)
                 console.log('filter score', filter.min_score_for_telegram)
-                console.log('analysis result',analysis.emailAnalysis.messageScore, finalScore, analysis.emailAnalysis.categories)
+                console.log('analysis result', analysis.emailAnalysis.messageScore, finalScore, analysis.emailAnalysis.categories)
 
                 // ==================================================
                 // STEP 4: FINALIZE ROW
                 // ==================================================
-                const {data, error} = await supabase
+                const { data, error } = await supabase
                     .from("email_ai_responses")
                     .update({
                         message_status: "completed",
@@ -280,45 +279,44 @@ export async function processHistories(
                 // ==================================================
                 // STEP 5: Telegram
                 // ==================================================
-                if (finalScore < filter.min_score_for_telegram)
-                {
+                if (finalScore < filter.min_score_for_telegram) {
                     console.log(`message skipped for telegram, score below treshold:${finalScore} < ${filter.min_score_for_telegram}`)
                     return
                 }
-                    const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
-                    const replyUserMessage =
-                        `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
-                    const datelineDate = analysis.emailAnalysis.datelineDate;
+                const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${msg.id}`;
+                const replyUserMessage =
+                    `${analysis.emailAnalysis.replyMessage}\n\nView in Gmail: ${gmailLink}`;
+                const datelineDate = analysis.emailAnalysis.datelineDate;
 
-                    // Build inline keyboard dynamically
-                    const inlineKeyboard: { text: string; callback_data: string }[][] = [
-                        [
-                            { text: "🚨Remind Me", callback_data: `remind_me:${msg.id}:dateline:${datelineDate}` },
-                        ],
-                    ];
+                // Build inline keyboard dynamically
+                const inlineKeyboard: { text: string; callback_data: string }[][] = [
+                    [
+                        { text: "🚨Remind Me", callback_data: `remind_me:${msg.id}:dateline:${datelineDate}` },
+                    ],
+                ];
 
-                    // Add "Add to Calendar" button if calendarEvent exists
-                    if (analysis.emailAnalysis.calendarEvent?.start && analysis.emailAnalysis.calendarEvent.end) {
-                        const { summary, start, end } = analysis.emailAnalysis.calendarEvent;
-                        // Optional: encode event as JSON for callback_data, or just a unique identifier
-                        const calendarCallback = `add_calendar:${msg.id}`; // you can handle this callback separately
-                        inlineKeyboard[0].push({ text: "📅 Add to Calendar", callback_data: calendarCallback });
+                // Add "Add to Calendar" button if calendarEvent exists
+                if (analysis.emailAnalysis.calendarEvent?.start && analysis.emailAnalysis.calendarEvent.end) {
+                    const { summary, start, end } = analysis.emailAnalysis.calendarEvent;
+                    // Optional: encode event as JSON for callback_data, or just a unique identifier
+                    const calendarCallback = `add_calendar:${msg.id}`; // you can handle this callback separately
+                    inlineKeyboard[0].push({ text: "📅 Add to Calendar", callback_data: calendarCallback });
+                }
+
+                await sendTelegramMessage(
+                    userTokens.user_id,
+                    replyUserMessage,
+                    {
+                        reply_markup: {
+                            inline_keyboard: inlineKeyboard,
+                        },
                     }
+                );
 
-                    await sendTelegramMessage(
-                        userTokens.user_id,
-                        replyUserMessage,
-                        {
-                            reply_markup: {
-                                inline_keyboard: inlineKeyboard,
-                            },
-                        }
-                    );
+                console.log(
+                    `✅ Sent Telegram for message ${msg.id} ( score=${finalScore})`
+                );
 
-                    console.log(
-                        `✅ Sent Telegram for message ${msg.id} ( score=${finalScore})`
-                    );
-                
 
 
             } catch (err) {
@@ -441,53 +439,83 @@ export async function getUserFilter(userId: string, filterId: string) {
  * Calculate final score for an email based on AI score and filter weights
  */
 export function calculateFinalScore(
-  analysis: EmailAnalysisResult,
-  filter: FilterConfig
+    analysis: EmailAnalysisResult,
+    filter: FilterConfig
 ): number {
-  const { messageScore, categories } = analysis.emailAnalysis;
+    const { messageScore, categories } = analysis.emailAnalysis;
 
-  // 1️⃣ Message score contribution (50%)
-  const messageScoreContribution = messageScore * 0.5;
+    // 1️⃣ Message score contribution (50%)
+    const messageScoreContribution = messageScore * 0.5;
 
-  // 2️⃣ Primary category contribution
-  let primaryScore = 0;
-  if (categories.primary.subcategory.length > 0) {
-    const sumPrimary = categories.primary.subcategory.reduce((sum, subKey) => {
-      // @ts-ignore - filter has all subcategory keys
-      return sum + (filter[subKey] ?? 0);
-    }, 0);
+    // 2️⃣ Primary category contribution
+    let primaryScore = 0;
+    if (categories.primary.subcategory.length > 0) {
+        let sumPrimary = 0;
+        let countPrimary = 0;
 
-    const avgPrimary = sumPrimary / categories.primary.subcategory.length;
-    primaryScore = avgPrimary;
-  }
+        for (let i = 0; i < categories.primary.subcategory.length; i++) {
+            const subKey = categories.primary.subcategory[i];
 
-  // 3️⃣ Secondary category contribution
-  let secondaryScore = 0;
-  if (categories.secondary.length > 0) {
-    let sumSecondary = 0;
-    let countSecondary = 0;
+            // Determine main category toggle
+            let mainCategoryToggle = false;
+            if (subKey.startsWith("financial_")) mainCategoryToggle = filter.toggle_financial;
+            else if (subKey.startsWith("marketing_")) mainCategoryToggle = filter.toggle_marketing;
+            else if (subKey.startsWith("security_")) mainCategoryToggle = filter.toggle_security;
+            else if (subKey.startsWith("deadline_")) mainCategoryToggle = filter.toggle_deadline;
+            else if (subKey.startsWith("operational_")) mainCategoryToggle = filter.toggle_operational;
+            else if (subKey.startsWith("personal_")) mainCategoryToggle = filter.toggle_personal;
+            else if (subKey.startsWith("misc_")) mainCategoryToggle = filter.toggle_misc;
+            else mainCategoryToggle = filter.toggle_custom;
 
-    categories.secondary.forEach(sec => {
-      sec.subcategory.forEach(subKey => {
-        // @ts-ignore
-        sumSecondary += filter[subKey] ?? 0;
-        countSecondary++;
-      });
-    });
+            if (mainCategoryToggle) {
+                // @ts-ignore - filter has all subcategory keys
+                sumPrimary += filter[subKey] ?? 0;
+            }
+            countPrimary++;
+        }
 
-    if (countSecondary > 0) {
-      secondaryScore = (sumSecondary / countSecondary) * 0.15;
+        primaryScore = sumPrimary / countPrimary;
     }
-  }
 
-  // 4️⃣ If no secondary categories, primary contribution is 50% instead of 35%
-  const primaryWeight = categories.secondary.length === 0 ? 0.5 : 0.35;
-  const secondaryWeight = categories.secondary.length === 0 ? 0 : 0.15;
+    // 3️⃣ Secondary category contribution
+    let secondaryScore = 0;
+    if (categories.secondary.length > 0) {
+        let sumSecondary = 0;
+        let countSecondary = 0;
 
-  const finalScore =
-    messageScoreContribution +
-    primaryScore * primaryWeight +
-    secondaryScore; // secondaryScore already multiplied by 0.15 above
+        for (let i = 0; i < categories.secondary.length; i++) {
+            const sec = categories.secondary[i];
+            for (let j = 0; j < sec.subcategory.length; j++) {
+                const subKey = sec.subcategory[j];
 
-  return Math.round(Math.min(finalScore, 100)); // cap at 100
+                // Determine main category toggle
+                let mainCategoryToggle = false;
+                if (subKey.startsWith("financial_")) mainCategoryToggle = filter.toggle_financial;
+                else if (subKey.startsWith("marketing_")) mainCategoryToggle = filter.toggle_marketing;
+                else if (subKey.startsWith("security_")) mainCategoryToggle = filter.toggle_security;
+                else if (subKey.startsWith("deadline_")) mainCategoryToggle = filter.toggle_deadline;
+                else if (subKey.startsWith("operational_")) mainCategoryToggle = filter.toggle_operational;
+                else if (subKey.startsWith("personal_")) mainCategoryToggle = filter.toggle_personal;
+                else if (subKey.startsWith("misc_")) mainCategoryToggle = filter.toggle_misc;
+                else mainCategoryToggle = filter.toggle_custom;
+
+                if (mainCategoryToggle) {
+                    // @ts-ignore - filter has all subcategory keys
+                    sumSecondary += filter[subKey] ?? 0;
+                }
+                countSecondary++;
+            }
+        }
+
+        if (countSecondary > 0) {
+            secondaryScore = (sumSecondary / countSecondary) * 0.15;
+        }
+    }
+
+    // 4️⃣ Determine weights
+    const primaryWeight = categories.secondary.length === 0 ? 0.5 : 0.35;
+    const finalScore = messageScoreContribution + primaryScore * primaryWeight + secondaryScore;
+
+    return Math.round(Math.min(finalScore, 100));
 }
+

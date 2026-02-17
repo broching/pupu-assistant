@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
             console.log("ℹ️ Using default filter for user", userTokens.user_id);
             filter = defaultFilter
         } else {
-            console.log("✅ Loaded filter", filter.filter_name);
+            console.log("✅ Loaded filter", filter.id);
         }
 
         // 🔟 Process histories (AI + DB + Telegram)

@@ -98,11 +98,7 @@ export async function PUT(
     // Explicit payload mapping
     const payload = {
         user_id: user.id,
-        filter_name: body.filter_name,
         email_connection_id: body.email_connection_id,
-        notification_mode: body.notification_mode,
-        watch_tags: body.watch_tags,
-        ignore_tags: body.ignore_tags,
 
         // Financial / Payments
         financial_subscription_renewal: body.financial_subscription_renewal,
@@ -147,9 +143,23 @@ export async function PUT(
         misc_legal_notice: body.misc_legal_notice,
         misc_internal_communication: body.misc_internal_communication,
 
+        // Boolean toggles for main categories
+        toggle_financial: body.toggle_financial,
+        toggle_marketing: body.toggle_marketing,
+        toggle_security: body.toggle_security,
+        toggle_deadline: body.toggle_deadline,
+        toggle_operational: body.toggle_operational,
+        toggle_personal: body.toggle_personal,
+        toggle_misc: body.toggle_misc,
+        toggle_custom: body.toggle_custom,
+
+        // Custom categories (JSON object)
+        custom_categories: body.custom_categories, // should be an object like { birthday: 80, message_from_mom: 100 }
+
         // Minimum Telegram score
-        min_score_for_telegram: body.min_score_for_telegram
+        min_score_for_telegram: body.min_score_for_telegram,
     };
+
 
     const { data, error } = await supabase
         .from("filters")

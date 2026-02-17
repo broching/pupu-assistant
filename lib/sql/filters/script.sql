@@ -3,23 +3,30 @@
 --  Purpose: Store per-email-connection AI notification rules and user preferences
 -- ==================================================
 
--- 1️⃣ Create table
 CREATE TABLE IF NOT EXISTS filters (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     -- Ownership & scope
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-    filter_name TEXT NOT NULL,
+    email_connection_id UUID NOT NULL,
 
-    -- 2️⃣ Notification frequency
-    notification_mode TEXT NOT NULL DEFAULT 'balanced'
-        CHECK (notification_mode IN ('minimal', 'balanced', 'aggressive')),
+    -- ==================================================
+    -- Main Category Toggles
+    -- If FALSE → ignore entire category during scoring
+    -- ==================================================
+    toggle_financial BOOLEAN NOT NULL DEFAULT TRUE,
+    toggle_marketing BOOLEAN NOT NULL DEFAULT TRUE,
+    toggle_security BOOLEAN NOT NULL DEFAULT TRUE,
+    toggle_deadline BOOLEAN NOT NULL DEFAULT TRUE,
+    toggle_operational BOOLEAN NOT NULL DEFAULT TRUE,
+    toggle_personal BOOLEAN NOT NULL DEFAULT TRUE,
+    toggle_misc BOOLEAN NOT NULL DEFAULT TRUE,
+    toggle_custom BOOLEAN NOT NULL DEFAULT TRUE,
 
-    -- 3️⃣ AI tag signals
-    watch_tags TEXT[] NOT NULL DEFAULT '{}',
-    ignore_tags TEXT[] NOT NULL DEFAULT '{}',
+    -- ==================================================
+    -- Category & subcategory weights (0-100)
+    -- ==================================================
 
-    -- 5️⃣ Category & subcategory weights (0-100)
     -- Financial / Payments
     financial_subscription_renewal INT NOT NULL DEFAULT 100,
     financial_payment_receipt INT NOT NULL DEFAULT 50,
@@ -63,7 +70,20 @@ CREATE TABLE IF NOT EXISTS filters (
     misc_legal_notice INT NOT NULL DEFAULT 100,
     misc_internal_communication INT NOT NULL DEFAULT 50,
 
-    -- 6️⃣ User-defined minimum score threshold (0-100) for sending to Telegram
+    -- ==================================================
+    -- Custom User Categories (dynamic key-value pairs)
+    -- Example:
+    -- { "birthday": 80, "message_from_mom": 100 }
+    -- ==================================================
+    custom_categories JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+    CONSTRAINT custom_categories_values_check CHECK (
+        jsonb_typeof(custom_categories) = 'object'
+    ),
+
+    -- ==================================================
+    -- User-defined minimum score threshold (0-100)
+    -- ==================================================
     min_score_for_telegram INT NOT NULL DEFAULT 50
         CHECK (min_score_for_telegram >= 0 AND min_score_for_telegram <= 100),
 
@@ -71,6 +91,7 @@ CREATE TABLE IF NOT EXISTS filters (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 
 -- ==================================================
 -- 2️⃣ Enable Row-Level Security (RLS)
