@@ -90,6 +90,7 @@ async function handleRemindMe(
   });
 }
 
+
 export async function handleRemindSet(
   chatId: number,
   gmailMessageId: string,
@@ -119,6 +120,7 @@ export async function handleRemindSet(
     .single();
 
   if (emailError || !emailResponse?.reply_message) {
+    console.log('email error', emailError, emailResponse)
     await sendErrorByChatId(chatId, "Could not find the original message.");
     return;
   }

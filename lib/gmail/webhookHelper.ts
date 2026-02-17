@@ -264,7 +264,7 @@ export async function processHistories(
                 // ==================================================
                 // STEP 4: FINALIZE ROW
                 // ==================================================
-                await supabase
+                const {data, error} = await supabase
                     .from("email_ai_responses")
                     .update({
                         message_status: "completed",
@@ -276,7 +276,6 @@ export async function processHistories(
                         updated_at: new Date().toISOString(),
                     })
                     .eq("id", responseRowId);
-
 
                 // ==================================================
                 // STEP 5: Telegram
@@ -490,5 +489,5 @@ export function calculateFinalScore(
     primaryScore * primaryWeight +
     secondaryScore; // secondaryScore already multiplied by 0.15 above
 
-  return Math.min(finalScore, 100); // cap at 100
+  return Math.round(Math.min(finalScore, 100)); // cap at 100
 }
