@@ -12,6 +12,7 @@ import {
     processHistories,
 } from "@/lib/gmail/webhookHelper";
 import { canAccessPlan } from "@/lib/subscription/server";
+import { defaultFilter } from "@/lib/geminiAI/geminiSchemas";
 
 
 /* ------------------------------
@@ -84,29 +85,7 @@ export async function POST(req: NextRequest) {
 
         if (!filter) {
             console.log("ℹ️ Using default filter for user", userTokens.user_id);
-            filter = {
-                filter_name: "Default filter",
-                notification_mode: "balanced",
-                watch_tags: [
-                    "invoice",
-                    "payment",
-                    "subscription",
-                    "receipt",
-                    "approval",
-                    "deadline",
-                    "contract",
-                    "meeting",
-                    "security",
-                    "verification",
-                    "promotion",
-                    "deal",
-                ],
-                ignore_tags: [],
-                enable_first_time_sender_alert: true,
-                enable_thread_reply_alert: true,
-                enable_deadline_alert: true,
-                enable_subscription_payment_alert: true,
-            };
+            filter = defaultFilter
         } else {
             console.log("✅ Loaded filter", filter.filter_name);
         }

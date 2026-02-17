@@ -187,6 +187,7 @@ export default function SmartNotificationRulesPage() {
                                                     <span className="mb-1">{weights[sub.key]}</span>
                                                 </div>
                                                 <Slider
+                                                    className="mt-1"
                                                     value={[weights[sub.key]]}
                                                     min={0}
                                                     max={100}
