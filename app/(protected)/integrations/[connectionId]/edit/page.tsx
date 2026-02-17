@@ -177,7 +177,9 @@ export default function EditIntegrationPage() {
                 });
             } else {
                 await apiClient.put(`/api/google/gmail-connections/${connectionId}`, {
+                    filter_id: filterId,
                     connection_name: connectionName.trim(),
+                    filter_name: name
                 });
 
                 await apiClient.put(`/api/filter/${filterId}`, {
