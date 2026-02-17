@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClientWithToken } from "@/lib/supabase/clientWithToken";
 
 export async function GET(req: NextRequest) {
-    console.log('calender reached')
     try {
         const token = req.headers.get("Authorization")?.replace("Bearer ", "");
         if (!token) {
@@ -26,7 +25,6 @@ export async function GET(req: NextRequest) {
                 console.error(error)
                 return NextResponse.json({ error: error.message }, { status: 404 });
             }
-            console.log("calender-connection", data)
             return NextResponse.json({ data });
         }
     } catch (err: any) {

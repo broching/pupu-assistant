@@ -1,3 +1,4 @@
+import { CATEGORIES } from "../constants/emailCategories";
 import { FilterConfig } from "./geminiSchemas";
 
 export function buildEmailAnalysisPrompt(params: {
@@ -6,13 +7,14 @@ export function buildEmailAnalysisPrompt(params: {
   emailBody: string;
   filter: any;
 }) {
-  const MAX_EMAIL_LENGTH = 2000;
+  const MAX_EMAIL_LENGTH = 3000;
   const body =
     params.emailBody.length > MAX_EMAIL_LENGTH
       ? params.emailBody.slice(0, MAX_EMAIL_LENGTH) + " [truncated]"
       : params.emailBody;
 
   const filter = params.filter;
+  CATEGORIES
 
   return `
 You are an AI email assistant.
@@ -44,31 +46,53 @@ The JSON MUST strictly follow this schema:
       "end": string,            // REQUIRED, ISO 8601
       "location"?: string,      // OPTIONAL
       "description": string,    // REQUIRED, event description
-  } | null
+  } | null,
+  "categories": {
+      "primary": {
+          "category": string,        // top-level category, e.g., "financial"
+          "subcategory": string[]    // subcategories contributing the most
+      },
+      "secondary": [
+          {
+              "category": string,    // other relevant category
+              "subcategory": string[]
+          }
+      ]
+  }
 }
 
-datelineDate RULES (STRICT – NO GUESSING):
+Category Rules:
+1. The "categories" object MUST be included in the JSON output.
+2. "primary" should contain the top-level category and the subcategories that contributed the most to the email's content.
+   - This represents the main purpose or focus of the email.
+3. "secondary" should be an array of other relevant categories and their subcategories that appear in the email but are not the main focus.
+4. Read the email content carefully and decide which category and subcategories this email belongs to.
+5. Only include categories and subcategories that are actually triggered by the email content.
+6. Do NOT invent new categories or subcategories; use only the ones provided below.
+7. Each subcategory array must include at least one subcategory that contributed to the score.
+8. If no secondary categories are relevant, return an empty array for "secondary".
+9. Ensure the "categories" object matches the JSON structure exactly and is parseable by JSON.parse().
 
+Available Categories / Subcategories (for reference):
+${JSON.stringify(CATEGORIES, null, 2)}
+
+
+datelineDate RULES (STRICT – NO GUESSING):
 Definition:
 - datelineDate is the deadline or dateline explicitly stated in the email content.
-
-Extraction rules:
 1. The datelineDate MUST be extracted directly from the email body or subject.
 2. The datelineDate MUST NOT be inferred, estimated, assumed, or invented.
 3. The datelineDate MUST correspond to an explicitly mentioned date in the email.
 4. If multiple dates are mentioned, choose the one that is clearly indicated as the deadline, dateline, due date, or cutoff.
 5. If no explicit dateline exists, return null for datelineDate and calendarEvent.
-
 Validation rules:
 - The datelineDate MUST be formatted as "YYYY-MM-DD".
 - The datelineDate MUST be in the future relative to Singapore time. 
 - The current date time is ${new Date().toISOString().split("T")[0]}.
 - Always return a date, if there is no dateline stated in email, then return current date time which is ${new Date().toISOString().split("T")[0]}.
-
 CRITICAL:
 - NEVER make up a datelineDate.
 - NEVER adjust a date to make it valid.
-
 
 Calendar Event Rules:
 1. If a dateline or deadline is explicitly mentioned in the email, create a calendarEvent object using that date.
@@ -83,6 +107,19 @@ Calendar Event Rules:
 replyMessage FORMAT (MANDATORY):
 The replyMessage MUST follow this exact structure, in this exact order,
 with EXACTLY ONE blank line between each section:
+
+Filters (for prioritization context only, do NOT mention explicitly):
+- Watch tags: ${filter.watch_tags.join(", ")}
+- Ignore tags: ${filter.ignore_tags.join(", ")}
+
+Email Sender:
+${params.emailSender}
+
+Email subject:
+${params.emailSubject}
+
+Email body:
+${body}
 
 1. Alert title with emoji + brand/product/object (e.g. "⚠️ Action Required (Ngrok): Secure Your Endpoint")
 
@@ -124,6 +161,24 @@ STYLE & VOICE (CRITICAL):
 - Avoid phrases like "this email says" or "the email mentions".
 - Use active voice.
 
+FAILURE CONDITIONS:
+- If markdown formatting is used, the output is INVALID.
+- If the JSON cannot be parsed, the output is INVALID.
+- If any URL is broken across lines, the output is INVALID.
+
+Filters (for prioritization context only, do NOT mention explicitly):
+- Watch tags: ${filter.watch_tags.join(", ")}
+- Ignore tags: ${filter.ignore_tags.join(", ")}
+
+Email Sender:
+${params.emailSender}
+
+Email subject:
+${params.emailSubject}
+
+Email body:
+${body}
+
 GOOD EXAMPLE (FORMAT ONLY):
 
 ⚠️ Action Required (Ngrok): Secure Your Ngrok Endpoint
@@ -137,25 +192,5 @@ How to fix:
 
 🔗 Setup Guide:
 https://d2v8tf04.na1.hubspotlinks.com/...
-
-FAILURE CONDITIONS:
-- If markdown formatting is used, the output is INVALID.
-- If the JSON cannot be parsed, the output is INVALID.
-- If any URL is broken across lines, the output is INVALID.
-
-Filters (for prioritization context only, do NOT mention explicitly):
-- Watch tags: ${filter.watch_tags.join(", ")}
-- Ignore tags: ${filter.ignore_tags.join(", ")}
-- Deadline detection enabled: ${filter.enable_deadline_alert}
-- Subscription & recurring payments alerts enabled: ${filter.enable_subscription_payment_alert}
-
-Email Sender:
-${params.emailSender}
-
-Email subject:
-${params.emailSubject}
-
-Email body:
-${body}
 `;
 }

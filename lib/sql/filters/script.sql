@@ -1,6 +1,6 @@
 -- ==================================================
 --  Table: filters
---  Purpose: Store per-email-connection AI notification rules
+--  Purpose: Store per-email-connection AI notification rules and user preferences
 -- ==================================================
 
 -- 1️⃣ Create table
@@ -19,11 +19,53 @@ CREATE TABLE IF NOT EXISTS filters (
     watch_tags TEXT[] NOT NULL DEFAULT '{}',
     ignore_tags TEXT[] NOT NULL DEFAULT '{}',
 
-    -- 4️⃣ Boolean behavior flags
-    enable_first_time_sender_alert BOOLEAN NOT NULL DEFAULT TRUE,
-    enable_thread_reply_alert BOOLEAN NOT NULL DEFAULT TRUE,
-    enable_deadline_alert BOOLEAN NOT NULL DEFAULT TRUE,
-    enable_subscription_payment_alert BOOLEAN NOT NULL DEFAULT TRUE,
+    -- 5️⃣ Category & subcategory weights (0-100)
+    -- Financial / Payments
+    financial_subscription_renewal INT NOT NULL DEFAULT 100,
+    financial_payment_receipt INT NOT NULL DEFAULT 50,
+    financial_refund_notice INT NOT NULL DEFAULT 80,
+    financial_invoice INT NOT NULL DEFAULT 50,
+    financial_failed_payment INT NOT NULL DEFAULT 100,
+
+    -- Marketing / Promotions
+    marketing_newsletter INT NOT NULL DEFAULT 50,
+    marketing_promotion INT NOT NULL DEFAULT 50,
+    marketing_seasonal_campaign INT NOT NULL DEFAULT 50,
+    marketing_discount_offer INT NOT NULL DEFAULT 50,
+    marketing_product_update INT NOT NULL DEFAULT 50,
+
+    -- Security / Account
+    security_alert INT NOT NULL DEFAULT 100,
+    security_login_alert INT NOT NULL DEFAULT 100,
+    security_mfa_change INT NOT NULL DEFAULT 100,
+
+    -- Deadlines / Important Dates
+    deadline_explicit_deadline INT NOT NULL DEFAULT 100,
+    deadline_event_invite INT NOT NULL DEFAULT 100,
+    deadline_subscription_cutoff INT NOT NULL DEFAULT 80,
+    deadline_billing_due_date INT NOT NULL DEFAULT 80,
+
+    -- Operational / Notifications
+    operational_system_update INT NOT NULL DEFAULT 50,
+    operational_service_outage INT NOT NULL DEFAULT 100,
+    operational_delivery_status INT NOT NULL DEFAULT 50,
+    operational_support_ticket_update INT NOT NULL DEFAULT 50,
+
+    -- Personal / Social
+    personal_direct_message INT NOT NULL DEFAULT 50,
+    personal_meeting_request INT NOT NULL DEFAULT 50,
+    personal_social_media_notification INT NOT NULL DEFAULT 50,
+    personal_event_reminder INT NOT NULL DEFAULT 50,
+
+    -- Miscellaneous / Other
+    misc_survey_request INT NOT NULL DEFAULT 50,
+    misc_feedback_request INT NOT NULL DEFAULT 50,
+    misc_legal_notice INT NOT NULL DEFAULT 100,
+    misc_internal_communication INT NOT NULL DEFAULT 50,
+
+    -- 6️⃣ User-defined minimum score threshold (0-100) for sending to Telegram
+    min_score_for_telegram INT NOT NULL DEFAULT 50
+        CHECK (min_score_for_telegram >= 0 AND min_score_for_telegram <= 100),
 
     -- Metadata
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

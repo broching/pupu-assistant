@@ -1,33 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@/components/ui/select";
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger
+} from "@/components/ui/tooltip";
 import { useApiClient } from "@/app/utils/axiosClient";
 import { toast } from "sonner";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import { useUser } from "@/app/context/userContext";
+import { ArrowLeft, Info } from "lucide-react";
 import { ContentLayout } from "@/components/admin-panel/content-layout";
+import { Separator } from "@/components/ui/separator";
+import { CATEGORIES } from "@/lib/constants/emailCategories";
+import { useUser } from "@/app/context/userContext";
 
 export default function EditNotificationFilterPage() {
     const router = useRouter();
     const params = useParams();
     const filterId = params?.filterId;
-
+    const { user } = useUser()
     const apiClient = useApiClient();
 
-    const [name, setName] = useState("");
+    const [name, setName] = useState<string>("");
     const [notificationMode, setNotificationMode] = useState("balanced");
 
     const [watchTags, setWatchTags] = useState<string[]>([]);
@@ -36,21 +37,18 @@ export default function EditNotificationFilterPage() {
     const [ignoreTags, setIgnoreTags] = useState<string[]>([]);
     const [ignoreInput, setIgnoreInput] = useState("");
 
-    const [firstTimeSender, setFirstTimeSender] = useState(true);
-    const [threadReply, setThreadReply] = useState(true);
-    const [deadlineAlert, setDeadlineAlert] = useState(true);
-    const [subscriptionAlert, setSubscriptionAlert] = useState(true);
+    const [weights, setWeights] = useState<Record<string, number>>({});
+    const [minScore, setMinScore] = useState(50);
 
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
-    const { user, session } = useUser();
 
     /* ----------------------- */
     /* Fetch existing filter   */
     /* ----------------------- */
     useEffect(() => {
+        if (!filterId) return;
         if (!user?.id) return;
-
         const fetchFilter = async () => {
             try {
                 const { data } = await apiClient.get(`/api/filter/${filterId}`);
@@ -59,11 +57,16 @@ export default function EditNotificationFilterPage() {
                 setNotificationMode(data.notification_mode);
                 setWatchTags(data.watch_tags ?? []);
                 setIgnoreTags(data.ignore_tags ?? []);
+                setMinScore(data.min_score_for_telegram ?? 50);
 
-                setFirstTimeSender(data.enable_first_time_sender_alert);
-                setThreadReply(data.enable_thread_reply_alert);
-                setDeadlineAlert(data.enable_deadline_alert);
-                setSubscriptionAlert(data.enable_subscription_payment_alert);
+                // Initialize weights from backend or default to 50
+                const initWeights: Record<string, number> = {};
+                CATEGORIES.forEach(cat =>
+                    cat.subcategories.forEach(sub => {
+                        initWeights[sub.key] = data[sub.key] ?? 50;
+                    })
+                );
+                setWeights(initWeights);
             } catch (err) {
                 toast.error("Failed to load filter");
                 console.error(err);
@@ -90,10 +93,8 @@ export default function EditNotificationFilterPage() {
             notification_mode: notificationMode,
             watch_tags: watchTags,
             ignore_tags: ignoreTags,
-            enable_first_time_sender_alert: firstTimeSender,
-            enable_thread_reply_alert: threadReply,
-            enable_deadline_alert: deadlineAlert,
-            enable_subscription_payment_alert: subscriptionAlert
+            min_score_for_telegram: minScore,
+            ...weights
         };
 
         try {
@@ -113,141 +114,156 @@ export default function EditNotificationFilterPage() {
     }
 
     return (
-        <ContentLayout title="Filters">
-            <div className="max-w-2xl mx-auto space-y-6">
-                <Card>
-                    <CardContent className="space-y-6 p-6">
-                        {/* Header */}
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => router.back()}
-                                    className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
-                                    aria-label="Go back"
-                                >
-                                    <ArrowLeft className="h-5 w-5" />
-                                </button>
+        <ContentLayout title="Edit Smart Notification Filter">
+            <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-6">
+                <Card className="p-6 space-y-6">
+                    {/* Header */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => router.back()}
+                            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition"
+                            aria-label="Go back"
+                        >
+                            <ArrowLeft className="h-5 w-5" />
+                        </button>
+                        <h1 className="text-xl font-semibold">Smart Notification Filter</h1>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                        Control which emails are important enough for the AI to notify you about.
+                    </p>
 
-                                <h1 className="text-xl font-semibold">
-                                    Edit Notification Filter
-                                </h1>
-                            </div>
+                    {/* Filter Name */}
+                    <div className="space-y-2 mt-4">
+                        <Label>
+                            Filter Name <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                            placeholder="e.g. Work Emails, Billing Alerts"
+                            value={name}
+                            required
+                            onChange={e => setName(e.target.value)}
+                        />
+                    </div>
 
-                            <p className="text-sm text-muted-foreground">
-                                Update how the AI decides which emails are important.
-                            </p>
+                    {/* Telegram Threshold */}
+                    <div className="space-y-2 mt-4">
+                        <div className="flex items-center gap-2">
+                            <Label>Telegram Threshold</Label>
+                            <span className="text-xs text-muted-foreground ml-3 hidden sm:inline">
+                                Lower → more notifications, Higher → only critical
+                            </span>
                         </div>
-
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Name */}
-                            <div className="space-y-2">
-                                <Label>
-                                    Filter Name <span className="text-destructive">*</span>
-                                </Label>
-                                <Input
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                    required
+                        <div className="flex items-center gap-4">
+                            <div className="w-3/4">
+                                <Slider
+                                    value={[minScore]}
+                                    min={0}
+                                    max={100}
+                                    step={1}
+                                    onValueChange={(value: number | number[]) => {
+                                        const val = Array.isArray(value) ? value[0] : value;
+                                        setMinScore(val);
+                                    }}
                                 />
                             </div>
+                            <div className="text-sm text-muted-foreground w-6 text-right">{minScore}</div>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger>
+                                        <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs text-sm">
+                                        Set the minimum score an email must reach for Telegram notifications to be sent.
+                                        Higher values reduce notifications to only the most important emails.
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                        <div className="mt-1 text-sm font-medium text-muted-foreground">
+                            Notification Frequency:{" "}
+                            <span className="font-semibold">
+                                {minScore <= 30 ? "Frequent" : minScore <= 70 ? "Moderate" : "Critical only"}
+                            </span>
+                        </div>
+                    </div>
 
-                            {/* Notification Mode */}
-                            <div className="space-y-2">
-                                <Label>Notification Frequency</Label>
-                                <Select
-                                    value={notificationMode}
-                                    onValueChange={setNotificationMode}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="minimal">
-                                            Minimal (only critical emails)
-                                        </SelectItem>
-                                        <SelectItem value="balanced">
-                                            Balanced (recommended)
-                                        </SelectItem>
-                                        <SelectItem value="aggressive">
-                                            Aggressive (notify more often)
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                    {/* Watch Tags */}
+                    <div className="space-y-2 mt-4">
+                        <Label>Important Keywords</Label>
+                        <TagInput
+                            placeholder="Type a keyword and press Enter"
+                            tags={watchTags}
+                            value={watchInput}
+                            onValueChange={setWatchInput}
+                            onAddTag={tag => setWatchTags([...watchTags, tag])}
+                            onRemoveTag={tag => setWatchTags(watchTags.filter(t => t !== tag))}
+                        />
+                    </div>
 
-                            {/* Watch Tags */}
-                            <div className="space-y-2">
-                                <Label>Important Keywords</Label>
-                                <TagInput
-                                    placeholder="Type a keyword and press Enter"
-                                    tags={watchTags}
-                                    value={watchInput}
-                                    onValueChange={setWatchInput}
-                                    onAddTag={tag => setWatchTags([...watchTags, tag])}
-                                    onRemoveTag={tag =>
-                                        setWatchTags(watchTags.filter(t => t !== tag))
-                                    }
-                                />
-                            </div>
+                    {/* Ignore Tags */}
+                    <div className="space-y-2 mt-4">
+                        <Label>Ignored Keywords</Label>
+                        <TagInput
+                            placeholder="Type a keyword and press Enter"
+                            tags={ignoreTags}
+                            value={ignoreInput}
+                            onValueChange={setIgnoreInput}
+                            onAddTag={tag => setIgnoreTags([...ignoreTags, tag])}
+                            onRemoveTag={tag => setIgnoreTags(ignoreTags.filter(t => t !== tag))}
+                        />
+                    </div>
 
-                            {/* Ignore Tags */}
-                            <div className="space-y-2">
-                                <Label>Ignored Keywords</Label>
-                                <TagInput
-                                    placeholder="Type a keyword and press Enter"
-                                    tags={ignoreTags}
-                                    value={ignoreInput}
-                                    onValueChange={setIgnoreInput}
-                                    onAddTag={tag => setIgnoreTags([...ignoreTags, tag])}
-                                    onRemoveTag={tag =>
-                                        setIgnoreTags(ignoreTags.filter(t => t !== tag))
-                                    }
-                                />
-                            </div>
+                    <Separator />
 
-                            {/* Toggles */}
-                            <div className="space-y-4">
-                                <ToggleRow
-                                    label="First-time sender alerts"
-                                    description="Notify me when someone emails me for the first time"
-                                    checked={firstTimeSender}
-                                    onChange={setFirstTimeSender}
-                                />
+                    {/* Weights Sliders */}
+                    <div>
+                        <h2 className="text-xl font-bold">Importance Levels</h2>
+                        <p className="mb-4 text-sm text-muted-foreground mt-1">
+                            Adjust how much each type of email matters to you based on categories.
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {CATEGORIES.map(cat => (
+                                <div key={cat.name} className="space-y-2">
+                                    <p className="font-medium text-[17px]">{cat.name}</p>
+                                    {cat.subcategories.map(sub => (
+                                        <div key={sub.key} className="flex items-center gap-2 text-[13px]">
+                                            <div className="flex-1">
+                                                <div className="flex justify-between">
+                                                    <span>{sub.label}</span>
+                                                    <span className="mb-1">{weights[sub.key]}</span>
+                                                </div>
+                                                <Slider
+                                                    value={[weights[sub.key] ?? 50]}
+                                                    min={0}
+                                                    max={100}
+                                                    step={1}
+                                                    onValueChange={(value: number | number[]) => {
+                                                        const val = Array.isArray(value) ? value[0] : value;
+                                                        setWeights(prev => ({ ...prev, [sub.key]: val }));
+                                                    }}
+                                                />
+                                            </div>
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent className="max-w-xs text-sm">{sub.explanation}</TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
 
-                                <ToggleRow
-                                    label="Thread reply alerts"
-                                    description="Notify me when someone replies"
-                                    checked={threadReply}
-                                    onChange={setThreadReply}
-                                />
-
-                                <ToggleRow
-                                    label="Deadline detection"
-                                    description="Notify me about deadlines"
-                                    checked={deadlineAlert}
-                                    onChange={setDeadlineAlert}
-                                />
-
-                                <ToggleRow
-                                    label="Subscriptions & recurring payments"
-                                    description="Notify me about recurring charges"
-                                    checked={subscriptionAlert}
-                                    onChange={setSubscriptionAlert}
-                                />
-                            </div>
-
-                            <Button
-                                type="submit"
-                                className="w-full"
-                                disabled={loading}
-                            >
-                                Update Filter
-                            </Button>
-                        </form>
-                    </CardContent>
+                    <Button type="submit" variant="secondary" className="w-full" disabled={loading}>
+                        Update Filter
+                    </Button>
                 </Card>
-            </div>
+            </form>
         </ContentLayout>
     );
 }
@@ -275,10 +291,7 @@ function TagInput({
         <div className="space-y-2">
             <div className="flex flex-wrap gap-2">
                 {tags.map(tag => (
-                    <span
-                        key={tag}
-                        className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs"
-                    >
+                    <span key={tag} className="flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs">
                         {tag}
                         <button
                             type="button"
@@ -303,30 +316,6 @@ function TagInput({
                     }
                 }}
             />
-
-        </div>
-
-    );
-}
-
-function ToggleRow({
-    label,
-    description,
-    checked,
-    onChange
-}: {
-    label: string;
-    description: string;
-    checked: boolean;
-    onChange: (v: boolean) => void;
-}) {
-    return (
-        <div className="flex items-center justify-between gap-4">
-            <div>
-                <p className="text-sm font-medium">{label}</p>
-                <p className="text-xs text-muted-foreground">{description}</p>
-            </div>
-            <Switch checked={checked} onCheckedChange={onChange} />
         </div>
     );
 }
