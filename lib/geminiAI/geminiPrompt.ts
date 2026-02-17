@@ -7,21 +7,22 @@ export function buildEmailAnalysisPrompt(params: {
   emailBody: string;
   filter: any;
 }) {
-  const MAX_EMAIL_LENGTH = 3000;
+  const MAX_EMAIL_LENGTH = 2000;
   const body =
     params.emailBody.length > MAX_EMAIL_LENGTH
       ? params.emailBody.slice(0, MAX_EMAIL_LENGTH) + " [truncated]"
       : params.emailBody;
 
   const filter = params.filter;
-  CATEGORIES
 
   return `
 You are an AI email assistant.
 
 Your task is to analyze an incoming email and output a SINGLE, VALID JSON OBJECT.
 
+==============================
 CRITICAL OUTPUT RULES (MUST FOLLOW):
+==============================
 - Return ONLY raw JSON text.
 - DO NOT wrap the response in markdown, code blocks, or backticks.
 - DO NOT include explanations, comments, or extra text.
@@ -32,155 +33,137 @@ CRITICAL OUTPUT RULES (MUST FOLLOW):
 - If there are many links, include at most the 2 most important ones.
 - Do NOT include any URL longer than 120 characters.
 - If including long or complex links would cause truncation or invalid JSON, OMIT the links.
+- STRICT: Do not hallucinate or invent information. Only use the content in the email and filters provided.
 
-The JSON MUST strictly follow this schema:
-
+==============================
+JSON SCHEMA (STRICT):
+==============================
 {
   "messageScore": number (0-100),
   "keywordsFlagged": string[],
   "replyMessage": string,
   "datelineDate": string,
   "calendarEvent": {
-      "summary": string,        // REQUIRED, event title
-      "start": string,          // REQUIRED, ISO 8601
-      "end": string,            // REQUIRED, ISO 8601
+      "summary": string,        // REQUIRED
+      "start": string,          // REQUIRED ISO 8601
+      "end": string,            // REQUIRED ISO 8601
       "location"?: string,      // OPTIONAL
-      "description": string,    // REQUIRED, event description
+      "description": string     // REQUIRED
   } | null,
   "categories": {
       "primary": {
-          "category": string,        // top-level category, e.g., "financial"
-          "subcategory": string[]    // subcategories contributing the most
+          "category": string,        // top-level
+          "subcategory": string[]    // contributing subcategories
       },
       "secondary": [
           {
-              "category": string,    // other relevant category
+              "category": string,
               "subcategory": string[]
           }
       ]
   }
 }
 
+==============================
 Category Rules:
-1. The "categories" object MUST be included in the JSON output.
-2. "primary" should contain the top-level category and the subcategories that contributed the most to the email's content.
-   - This represents the main purpose or focus of the email.
-3. "secondary" should be an array of other relevant categories and their subcategories that appear in the email but are not the main focus.
-4. Read the email content carefully and decide which category and subcategories this email belongs to.
-5. Only include categories and subcategories that are actually triggered by the email content.
-6. Do NOT invent new categories or subcategories; use only the ones provided below.
-7. Each subcategory array must include at least one subcategory that contributed to the score.
-8. If no secondary categories are relevant, return an empty array for "secondary".
-9. Ensure the "categories" object matches the JSON structure exactly and is parseable by JSON.parse().
+==============================
+1. "categories" MUST be included.
+2. "primary" = top-level category + subcategories contributing most.
+3. "secondary" = other relevant categories.
+4. Only include categories/subcategories triggered by email content.
+5. DO NOT invent new categories/subcategories; use only provided ones.
+6. Each subcategory array must have ≥1 subcategory.
+7. If no secondary categories, return an empty array.
+8. Ensure JSON matches the structure exactly.
 
-Available Categories / Subcategories (for reference):
+Available Categories / Subcategories:
 ${JSON.stringify(CATEGORIES, null, 2)}
 
+==============================
+Filters (for context, DO NOT MENTION IN OUTPUT):
+==============================
+- Watch tags: ${filter.watch_tags.join(", ")}
+- Ignore tags: ${filter.ignore_tags.join(", ")}
 
+==============================
+Email Info:
+==============================
+Sender:
+${params.emailSender}
+
+Subject:
+${params.emailSubject}
+
+Body:
+${body}
+
+==============================
 datelineDate RULES (STRICT – NO GUESSING):
-Definition:
-- datelineDate is the deadline or dateline explicitly stated in the email content.
-1. The datelineDate MUST be extracted directly from the email body or subject.
-2. The datelineDate MUST NOT be inferred, estimated, assumed, or invented.
-3. The datelineDate MUST correspond to an explicitly mentioned date in the email.
-4. If multiple dates are mentioned, choose the one that is clearly indicated as the deadline, dateline, due date, or cutoff.
-5. If no explicit dateline exists, return null for datelineDate and calendarEvent.
-Validation rules:
-- The datelineDate MUST be formatted as "YYYY-MM-DD".
-- The datelineDate MUST be in the future relative to Singapore time. 
-- The current date time is ${new Date().toISOString().split("T")[0]}.
-- Always return a date, if there is no dateline stated in email, then return current date time which is ${new Date().toISOString().split("T")[0]}.
+==============================
+Definition: Explicit deadline or dateline in email.
+1. Extract ONLY from email subject/body.
+2. Do NOT infer, estimate, or invent.
+3. If multiple dates, choose the one clearly indicated as deadline/cutoff.
+4. If no explicit dateline, return null for datelineDate and calendarEvent.
+5. Format: "YYYY-MM-DD".
+6. Must be future relative to Singapore time.
+7. Current date: ${new Date().toISOString().split("T")[0]}.
 CRITICAL:
-- NEVER make up a datelineDate.
-- NEVER adjust a date to make it valid.
+- NEVER make up or adjust a datelineDate.
 
+==============================
 Calendar Event Rules:
-1. If a dateline or deadline is explicitly mentioned in the email, create a calendarEvent object using that date.
-   - Use datelineDate for the start of the event.
-   - Assume end time is 1 hour after start.
-2. summary is REQUIRED. If the email has a subject or context indicating the event title, use it.
-3. start and end are REQUIRED. They must be valid ISO 8601 strings.
-4. location is OPTIONAL. Include if information is present, otherwise omit or set to null.
-5. If no explicit dateline is present, set calendarEvent to null.
-6. Do NOT invent dates or events. Only create a calendarEvent if a dateline is explicitly mentioned.
+==============================
+1. Create calendarEvent ONLY if a dateline exists.
+2. Use datelineDate as start; end = start + 1 hour.
+3. summary REQUIRED (use subject/context if present).
+4. start & end REQUIRED ISO 8601.
+5. location OPTIONAL; omit if absent.
+6. If no dateline, set calendarEvent to null.
+7. Do NOT invent dates/events.
 
+==============================
 replyMessage FORMAT (MANDATORY):
-The replyMessage MUST follow this exact structure, in this exact order,
-with EXACTLY ONE blank line between each section:
-
-Filters (for prioritization context only, do NOT mention explicitly):
-- Watch tags: ${filter.watch_tags.join(", ")}
-- Ignore tags: ${filter.ignore_tags.join(", ")}
-
-Email Sender:
-${params.emailSender}
-
-Email subject:
-${params.emailSubject}
-
-Email body:
-${body}
-
-1. Alert title with emoji + brand/product/object (e.g. "⚠️ Action Required (Ngrok): Secure Your Endpoint")
-
-[blank line]
-
-2. Short summary of what happened, while including the brand/product/object.
-3. Why this matters / risk.
-
-[blank line]
-
-4. Clear next steps, written as numbered steps using emojis like 1️⃣ 2️⃣
-
-[blank line]
-
-5. Primary action link (if available).
-
-[blank line]
-
-6. Secondary action link (only if space allows).
-
-**IMPORTANT INSTRUCTION:**
-- Even if the email is trivial, test, or contains no explicit actionable information, do NOT write "No action is needed" or skip the email.
-- Always frame the replyMessage as if the sender has sent you something worth acknowledging.
-- Example: "James sent you a test email regarding XYZ. Here’s a quick summary and what to do next..."
-
-replyMessage CONTENT RULES:
-- INCLUDE ALL actionable details EXACTLY as shown in the email (URLs, commands, dates, reference IDs).
-- If the email contains instructions, preserve them accurately.
+==============================
+- Must follow EXACT structure/order.
+- EXACTLY ONE blank line between sections.
+- Include all actionable details from email (URLs, commands, dates, reference IDs).
 - Do NOT invent steps, links, or commands.
-- If urgency exists, reflect it clearly.
-- Do NOT mention scores, filters, or AI analysis.
+- Avoid mentioning scores, filters, or AI analysis.
 
-STYLE & VOICE (CRITICAL):
-- Write like a smart, confident personal assistant (Jarvis-style).
-- Be concise, direct, and structured.
-- No fluff, no filler.
-- Prefer short sentences.
-- Use calm urgency when appropriate.
+Structure:
+1. Alert title with emoji + brand/product/object
+[blank line]
+2. Short summary including brand/product/object
+3. Why this matters / risk
+[blank line]
+4. Clear next steps, numbered with emojis (1️⃣ 2️⃣ …) with links provided ( if provided and space allows)
+[blank line]
+
+IMPORTANT:
+- Never skip the email or write "No action is needed".
+- Always treat email as requiring a structured acknowledgment.
+- Follow example strictly (no deviations).
+
+==============================
+STYLE & VOICE:
+==============================
+- Smart, confident personal assistant (Jarvis-style).
+- Concise, direct, structured.
+- Short sentences, calm urgency if needed.
+- Active voice, no filler, no fluff.
 - Avoid phrases like "this email says" or "the email mentions".
-- Use active voice.
 
+==============================
 FAILURE CONDITIONS:
-- If markdown formatting is used, the output is INVALID.
-- If the JSON cannot be parsed, the output is INVALID.
-- If any URL is broken across lines, the output is INVALID.
+==============================
+- Markdown formatting = INVALID.
+- Non-parseable JSON = INVALID.
+- Broken URLs across lines = INVALID.
 
-Filters (for prioritization context only, do NOT mention explicitly):
-- Watch tags: ${filter.watch_tags.join(", ")}
-- Ignore tags: ${filter.ignore_tags.join(", ")}
-
-Email Sender:
-${params.emailSender}
-
-Email subject:
-${params.emailSubject}
-
-Email body:
-${body}
-
-GOOD EXAMPLE (FORMAT ONLY):
-
+==============================
+GOOD EXAMPLE (FORMAT ONLY – FOLLOW STRICTLY):
+==============================
 ⚠️ Action Required (Ngrok): Secure Your Ngrok Endpoint
 
 Your Ngrok app is currently exposed without authentication.
@@ -188,9 +171,8 @@ This could allow unintended access.
 
 How to fix:
 1️⃣ Add OAuth using ngrok Traffic Policy
+    - Add 0Auth using this link: https://d2v8tf04.na1.hubspotlinks.com/...
 2️⃣ Restart your endpoint with the policy attached
-
-🔗 Setup Guide:
-https://d2v8tf04.na1.hubspotlinks.com/...
+    - Restart your endpoint here: https://d2v8tdff04.na1.hsdubspotldinks.com/...
 `;
 }
