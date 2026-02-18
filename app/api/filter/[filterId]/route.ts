@@ -95,84 +95,23 @@ export async function PUT(
         );
     }
 
-    // Explicit payload mapping
+    // Dynamically build payload
+    // Keep mandatory fields and any toggles
     const payload = {
         user_id: user.id,
-        email_connection_id: body.email_connection_id,
-
-        // Financial / Payments
-        financial_subscription_renewal: body.financial_subscription_renewal,
-        financial_payment_receipt: body.financial_payment_receipt,
-        financial_refund_notice: body.financial_refund_notice,
-        financial_invoice: body.financial_invoice,
-        financial_failed_payment: body.financial_failed_payment,
-
-        // Marketing / Promotions
-        marketing_newsletter: body.marketing_newsletter,
-        marketing_promotion: body.marketing_promotion,
-        marketing_seasonal_campaign: body.marketing_seasonal_campaign,
-        marketing_discount_offer: body.marketing_discount_offer,
-        marketing_product_update: body.marketing_product_update,
-
-        // Security / Account
-        security_alert: body.security_alert,
-        security_login_alert: body.security_login_alert,
-        security_mfa_change: body.security_mfa_change,
-
-        // Deadlines / Important Dates
-        deadline_explicit_deadline: body.deadline_explicit_deadline,
-        deadline_event_invite: body.deadline_event_invite,
-        deadline_subscription_cutoff: body.deadline_subscription_cutoff,
-        deadline_billing_due_date: body.deadline_billing_due_date,
-
-        // Operational / Notifications
-        operational_system_update: body.operational_system_update,
-        operational_service_outage: body.operational_service_outage,
-        operational_delivery_status: body.operational_delivery_status,
-        operational_support_ticket_update: body.operational_support_ticket_update,
-
-        // Personal / Social
-        personal_direct_message: body.personal_direct_message,
-        personal_meeting_request: body.personal_meeting_request,
-        personal_social_media_notification: body.personal_social_media_notification,
-        personal_event_reminder: body.personal_event_reminder,
-
-        // Miscellaneous / Other
-        misc_survey_request: body.misc_survey_request,
-        misc_feedback_request: body.misc_feedback_request,
-        misc_legal_notice: body.misc_legal_notice,
-        misc_internal_communication: body.misc_internal_communication,
-
-        // Boolean toggles for main categories
-        toggle_financial: body.toggle_financial,
-        toggle_marketing: body.toggle_marketing,
-        toggle_security: body.toggle_security,
-        toggle_deadline: body.toggle_deadline,
-        toggle_operational: body.toggle_operational,
-        toggle_personal: body.toggle_personal,
-        toggle_misc: body.toggle_misc,
-        toggle_custom: body.toggle_custom,
-
-        // Custom categories (JSON object)
-        custom_categories: body.custom_categories, // should be an object like { birthday: 80, message_from_mom: 100 }
-
-        // Minimum Telegram score
-        min_score_for_telegram: body.min_score_for_telegram,
+        ...body, // dynamically include all other keys
     };
-
 
     const { data, error } = await supabase
         .from("filters")
-        .update(
-            payload
-        )
+        .update(payload)
         .eq("id", filterId)
         .eq("user_id", user.id) // 🔒 RLS + ownership
         .select()
         .single();
 
     if (error || !data) {
-        console.log('error', error)
+        console.log("error", error);
         return NextResponse.json(
             { error: "Filter not found or update failed" },
             { status: 404 }
@@ -181,6 +120,7 @@ export async function PUT(
 
     return NextResponse.json(data);
 }
+
 
 export async function DELETE(
     req: Request,

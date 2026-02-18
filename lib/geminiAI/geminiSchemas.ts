@@ -22,68 +22,105 @@ export type EmailAnalysisResult = {
 
 // Filter configuration
 export type FilterConfig = {
-  // General settings
+  // =========================
+  // General Settings
+  // =========================
   filter_name: string;
   min_score_for_telegram: number;
 
-  // AI category weights (0-100)
-  // Financial / Payments
+  // =========================
+  // Financial
+  // =========================
   financial_subscription_renewal: number;
   financial_payment_receipt: number;
   financial_refund_notice: number;
   financial_invoice: number;
   financial_failed_payment: number;
 
-  // Marketing / Promotions
+  // =========================
+  // Marketing
+  // =========================
   marketing_newsletter: number;
   marketing_promotion: number;
   marketing_seasonal_campaign: number;
   marketing_discount_offer: number;
   marketing_product_update: number;
 
-  // Security / Account
+  // =========================
+  // Security (Expanded)
+  // =========================
   security_alert: number;
   security_login_alert: number;
   security_mfa_change: number;
+  security_password_change: number;
+  security_suspicious_activity: number;
+  security_account_locked: number;
+  security_data_breach_notice: number;
+  security_permission_change: number;
+  security_recovery_email_change: number;
+  security_billing_fraud_alert: number;
 
-  // Deadlines / Important Dates
+  // =========================
+  // Deadline
+  // =========================
   deadline_explicit_deadline: number;
   deadline_event_invite: number;
   deadline_subscription_cutoff: number;
   deadline_billing_due_date: number;
 
-  // Operational / Notifications
-  operational_system_update: number;
-  operational_service_outage: number;
-  operational_delivery_status: number;
-  operational_support_ticket_update: number;
+  // =========================
+  // Work
+  // =========================
+  work_direct_message: number;
+  work_task_assigned: number;
+  work_deadline_or_approval: number;
+  work_client_communication: number;
+  work_meeting_request: number;
+  work_document_shared: number;
+  work_hr_or_management_notice: number;
+  work_system_or_access_issue: number;
 
-  // Personal / Social
-  personal_direct_message: number;
-  personal_meeting_request: number;
-  personal_social_media_notification: number;
-  personal_event_reminder: number;
+  // =========================
+  // Personal (Redesigned)
+  // =========================
+  personal_family_related: number;
+  personal_medical_appointment: number;
+  personal_travel_booking: number;
+  personal_flight_or_trip_update: number;
+  personal_delivery_update: number;
+  personal_event_invite: number;
+  personal_social_notification: number;
 
-  // Miscellaneous / Other
-  misc_survey_request: number;
-  misc_feedback_request: number;
-  misc_legal_notice: number;
-  misc_internal_communication: number;
+  // =========================
+  // Legal & Government
+  // =========================
+  legal_contract_sent: number;
+  legal_contract_signed: number;
+  legal_terms_update: number;
+  legal_regulatory_notice: number;
+  legal_government_notice: number;
+  legal_tax_notice: number;
+  legal_court_notice: number;
+  legal_compliance_requirement: number;
 
-  // Boolean toggles for main categories
-  toggle_financial: boolean,
-  toggle_marketing: boolean
-  toggle_deadline: boolean,
-  toggle_operational: boolean,
-  toggle_personal: boolean,
-  toggle_misc: boolean,
-  toggle_custom: boolean,
-  toggle_security: boolean,
+  // =========================
+  // Boolean Toggles
+  // =========================
+  toggle_financial: boolean;
+  toggle_marketing: boolean;
+  toggle_security: boolean;
+  toggle_deadline: boolean;
+  toggle_work: boolean;
+  toggle_personal: boolean;
+  toggle_legal: boolean;
+  toggle_custom: boolean;
 
-  // Custom categories (JSON object)
-  custom_categories: {}, // should be an object like { birthday: 80, message_from_mom: 100 }
-
+  // =========================
+  // Custom Categories
+  // =========================
+  custom_categories: Record<string, number>;
 };
+
 
 
 export type CategoriesObject = {

@@ -177,62 +177,100 @@ export async function GET(req: NextRequest) {
         throw new Error("Failed to get updated row id");
       }
 
-      // create filter and link to connection 
+      // create filter and link to connection
 
-      // Explicit payload mapping
       const payload = {
         user_id: data?.[0]?.user_id,
         email_connection_id: updatedId,
 
+        // Category Toggles
         toggle_financial: true,
         toggle_marketing: true,
         toggle_security: true,
         toggle_deadline: true,
-        toggle_operational: true,
+        toggle_work: true,
         toggle_personal: true,
-        toggle_misc: true,
+        toggle_legal: true,
         toggle_custom: false,
 
+        // =========================
+        // Financial
+        // =========================
         financial_subscription_renewal: 50,
         financial_payment_receipt: 50,
         financial_refund_notice: 50,
         financial_invoice: 50,
         financial_failed_payment: 50,
 
+        // =========================
+        // Marketing
+        // =========================
         marketing_newsletter: 50,
         marketing_promotion: 50,
         marketing_seasonal_campaign: 50,
         marketing_discount_offer: 50,
         marketing_product_update: 50,
 
+        // =========================
+        // Security (Expanded)
+        // =========================
         security_alert: 50,
         security_login_alert: 50,
         security_mfa_change: 50,
+        security_password_change: 50,
+        security_suspicious_activity: 50,
+        security_account_locked: 50,
+        security_data_breach_notice: 50,
+        security_permission_change: 50,
+        security_recovery_email_change: 50,
+        security_billing_fraud_alert: 50,
 
+        // =========================
+        // Deadline
+        // =========================
         deadline_explicit_deadline: 50,
         deadline_event_invite: 50,
         deadline_subscription_cutoff: 50,
         deadline_billing_due_date: 50,
 
-        operational_system_update: 50,
-        operational_service_outage: 50,
-        operational_delivery_status: 50,
-        operational_support_ticket_update: 50,
+        // =========================
+        // Work
+        // =========================
+        work_direct_message: 50,
+        work_task_assigned: 50,
+        work_deadline_or_approval: 50,
+        work_client_communication: 50,
+        work_meeting_request: 50,
+        work_document_shared: 50,
+        work_hr_or_management_notice: 50,
+        work_system_or_access_issue: 50,
 
-        personal_direct_message: 50,
-        personal_meeting_request: 50,
-        personal_social_media_notification: 50,
-        personal_event_reminder: 50,
+        // =========================
+        // Personal (Redesigned)
+        // =========================
+        personal_family_related: 50,
+        personal_medical_appointment: 50,
+        personal_travel_booking: 50,
+        personal_flight_or_trip_update: 50,
+        personal_delivery_update: 50,
+        personal_event_invite: 50,
+        personal_social_notification: 50,
 
-        misc_survey_request: 50,
-        misc_feedback_request: 50,
-        misc_legal_notice: 50,
-        misc_internal_communication: 50,
+        // =========================
+        // Legal & Government
+        // =========================
+        legal_contract_sent: 50,
+        legal_contract_signed: 50,
+        legal_terms_update: 50,
+        legal_regulatory_notice: 50,
+        legal_government_notice: 50,
+        legal_tax_notice: 50,
+        legal_court_notice: 50,
+        legal_compliance_requirement: 50,
 
         custom_categories: {},
         min_score_for_telegram: 50
       };
-
 
       const { data: filterData, error: filterError } = await supabase
         .from("filters")
@@ -243,6 +281,7 @@ export async function GET(req: NextRequest) {
       if (filterError) {
         return NextResponse.json({ error: filterError.message }, { status: 400 });
       }
+
 
       console.log('filter created successfully', filterData)
 
