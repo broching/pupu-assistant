@@ -1,5 +1,5 @@
 "use client";
-
+import Masonry from "react-masonry-css";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
@@ -21,7 +21,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+
 type CustomItem = { label: string; key: string; weight: number };
+
 export default function EditIntegrationPage() {
     const router = useRouter();
     const params = useParams();
@@ -40,11 +42,12 @@ export default function EditIntegrationPage() {
         toggle_marketing: true,
         toggle_security: true,
         toggle_deadline: true,
-        toggle_operational: true,
+        toggle_work: true,
         toggle_personal: true,
-        toggle_misc: true,
+        toggle_legal: true,
         toggle_custom: false,
     });
+
     const [customItems, setCustomItems] = useState<CustomItem[]>([]);
     const [initialLoading, setInitialLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -56,9 +59,14 @@ export default function EditIntegrationPage() {
         "Marketing / Promotions": "toggle_marketing",
         "Security / Account": "toggle_security",
         "Deadlines / Important Dates": "toggle_deadline",
-        "Operational / Notifications": "toggle_operational",
+        "Work / Professional": "toggle_work",
         "Personal / Social": "toggle_personal",
-        "Miscellaneous / Other": "toggle_misc",
+        "Legal / Compliance": "toggle_legal",
+    };
+
+    const breakpointColumnsObj = {
+        default: 2, // 2 columns on desktop
+        768: 1,     // 1 column on mobile
     };
 
     /* ------------------------------ */
@@ -80,7 +88,6 @@ export default function EditIntegrationPage() {
             } catch (err) {
                 console.error(err);
                 toast.error("Failed to load integration.");
-                router.back();
             } finally {
                 setInitialLoading(false);
             }
@@ -115,18 +122,20 @@ export default function EditIntegrationPage() {
                 toggle_marketing: data.toggle_marketing ?? true,
                 toggle_security: data.toggle_security ?? true,
                 toggle_deadline: data.toggle_deadline ?? true,
-                toggle_operational: data.toggle_operational ?? true,
+                toggle_work: data.toggle_work ?? true,
                 toggle_personal: data.toggle_personal ?? true,
-                toggle_misc: data.toggle_misc ?? true,
+                toggle_legal: data.toggle_legal ?? true,
                 toggle_custom: data.toggle_custom ?? false,
             });
+
             // load custom items
             setCustomItems(
                 Object.entries(data.custom_categories || {}).map(([key, weight]) => ({
                     label: key,
                     key,
                     weight: Number(weight),
-                })))
+                }))
+            );
         } catch (err) {
             console.error(err);
             toast.error("Failed to load filter.");
@@ -187,7 +196,7 @@ export default function EditIntegrationPage() {
                 <Card className="p-6 space-y-6">
                     {/* Header */}
                     <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => router.back()}>
+                        <button type="button" onClick={() => router.push('/account')}>
                             <ArrowLeft className="h-5 w-5" />
                         </button>
                         <h1 className="text-xl font-semibold">
@@ -260,42 +269,33 @@ export default function EditIntegrationPage() {
                             What should we monitor?
                         </h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-
+                        <Masonry
+                            breakpointCols={breakpointColumnsObj}
+                            className="flex gap-6"
+                            columnClassName="flex flex-col gap-6"
+                        >
                             {CATEGORIES.map((cat) => {
                                 const toggleKey = CATEGORY_TOGGLE_MAP[cat.name] as keyof typeof toggles;
-                                const isEnabled = toggles[toggleKey];
-
+                                const isEnabled = toggleKey ? toggles[toggleKey] : true;
 
                                 return (
-                                    <div
-                                        key={cat.name}
-                                        className="border rounded-xl p-4 space-y-3"
-                                    >
+                                    <div key={cat.name} className="border rounded-xl p-4 space-y-3">
                                         <div className="flex items-center justify-between">
-                                            <p className="font-medium">
-                                                {cat.name}
-                                            </p>
-
+                                            <p className="font-medium">{cat.name}</p>
                                             {toggleKey && (
                                                 <Switch
                                                     checked={isEnabled}
                                                     onCheckedChange={(checked) =>
-                                                        setToggles((prev) => ({
-                                                            ...prev,
-                                                            [toggleKey]: checked,
-                                                        }))
+                                                        setToggles((prev: any) => ({ ...prev, [toggleKey]: checked }))
                                                     }
                                                 />
                                             )}
                                         </div>
 
-                                        {/* Subcategory sliders with smooth collapse animation */}
+                                        {/* Subcategories */}
                                         <div
-                                            className={`
-                                                    overflow-hidden transition-all duration-300 ease-in-out
-                                                    ${isEnabled ? "max-h-[1000px] opacity-100 mt-3" : "max-h-0 opacity-0"}
-                                                `}
+                                            className={`overflow-hidden transition-all duration-300 ease-in-out ${isEnabled ? "max-h-[1000px] opacity-100 mt-3" : "max-h-0 opacity-0"
+                                                }`}
                                         >
                                             <div className="space-y-3 pb-1">
                                                 {cat.subcategories.map((sub) => (
@@ -314,19 +314,23 @@ export default function EditIntegrationPage() {
                                                                 step={1}
                                                                 onValueChange={(value) => {
                                                                     const val = Array.isArray(value) ? value[0] : value;
-                                                                    setWeights((prev) => ({ ...prev, [sub.key]: val }));
-
-                                                                    // Show tooltip for 5 seconds when slider is used
+                                                                    setWeights((prev: any) => ({ ...prev, [sub.key]: val }));
                                                                     setTooltipOpenKey(sub.key);
-                                                                    setTimeout(() => setTooltipOpenKey((current) => (current === sub.key ? null : current)), 5000);
+                                                                    setTimeout(
+                                                                        () =>
+                                                                            setTooltipOpenKey((current) =>
+                                                                                current === sub.key ? null : current
+                                                                            ),
+                                                                        5000
+                                                                    );
                                                                 }}
                                                             />
                                                         </div>
 
                                                         <TooltipProvider>
                                                             <Tooltip
-                                                                open={tooltipOpenKey === sub.key || undefined} // undefined lets hover trigger normal behavior
-                                                                onOpenChange={() => { }} // we control programmatically for slider
+                                                                open={tooltipOpenKey === sub.key || undefined}
+                                                                onOpenChange={() => { }}
                                                             >
                                                                 <TooltipTrigger asChild>
                                                                     <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
@@ -338,18 +342,18 @@ export default function EditIntegrationPage() {
                                                 ))}
                                             </div>
                                         </div>
-
                                     </div>
                                 );
                             })}
+
                             {/* Custom Category Card */}
-                            <div className="border rounded-xl p-4 space-y-3 transition-all duration-300">
+                            <div className="border rounded-xl p-4 space-y-3">
                                 <div className="flex items-center justify-between">
                                     <p className="font-medium">Custom Categories</p>
                                     <Switch
                                         checked={toggles.toggle_custom}
                                         onCheckedChange={(checked) =>
-                                            setToggles((prev) => ({ ...prev, toggle_custom: checked }))
+                                            setToggles((prev: any) => ({ ...prev, toggle_custom: checked }))
                                         }
                                     />
                                 </div>
@@ -359,12 +363,11 @@ export default function EditIntegrationPage() {
                                         }`}
                                 >
                                     <div className="space-y-3 pb-1">
-                                        {/* Add New Custom */}
                                         <button
                                             type="button"
                                             className="w-full border-2 border-dashed border-gray-300 rounded-xl p-3 flex items-center justify-center gap-2 text-gray-500 hover:border-gray-400 hover:text-gray-600 transition"
                                             onClick={() =>
-                                                setCustomItems((prev) => [
+                                                setCustomItems((prev: any) => [
                                                     ...prev,
                                                     { label: "", key: crypto.randomUUID(), weight: 50 },
                                                 ])
@@ -372,12 +375,9 @@ export default function EditIntegrationPage() {
                                         >
                                             <Plus className="w-4 h-4" /> Add Custom
                                         </button>
-                                        {/* Existing custom items */}
-                                        {customItems.map((item, index) => (
+
+                                        {customItems.map((item: any, index: number) => (
                                             <div key={item.key} className="flex items-center gap-2 text-sm">
-
-
-                                                {/* Slider with number display */}
                                                 <div className="flex-1">
                                                     <div className="flex justify-between mb-1 text-sm text-muted-foreground">
                                                         <span className="ml-1">
@@ -385,7 +385,7 @@ export default function EditIntegrationPage() {
                                                                 placeholder="Custom Category"
                                                                 value={item.label}
                                                                 onChange={(e) =>
-                                                                    setCustomItems((prev) => {
+                                                                    setCustomItems((prev: any) => {
                                                                         const copy = [...prev];
                                                                         copy[index].label = e.target.value;
                                                                         return copy;
@@ -403,7 +403,7 @@ export default function EditIntegrationPage() {
                                                         step={1}
                                                         onValueChange={(value) => {
                                                             const val = Array.isArray(value) ? value[0] : value;
-                                                            setCustomItems((prev) => {
+                                                            setCustomItems((prev: any) => {
                                                                 const copy = [...prev];
                                                                 copy[index].weight = val;
                                                                 return copy;
@@ -413,13 +413,11 @@ export default function EditIntegrationPage() {
                                                 </div>
                                             </div>
                                         ))}
-
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </Masonry>
                     </div>
-
 
                     <Button
                         type="submit"

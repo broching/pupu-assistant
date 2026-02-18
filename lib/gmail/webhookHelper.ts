@@ -444,8 +444,25 @@ export function calculateFinalScore(
 ): number {
     const { messageScore, categories } = analysis.emailAnalysis;
 
-    // 1️⃣ Message score contribution (50%)
-    const messageScoreContribution = messageScore * 0.5;
+    console.log("=== Email Analysis ===");
+    console.log("Message Score:", messageScore);
+
+    // 1️⃣ Message score contribution (25%)
+    const messageWeight = 0.25;
+    const messageScoreContribution = messageScore * messageWeight;
+    console.log(`Message Contribution: ${messageScore} × ${messageWeight} = ${messageScoreContribution}`);
+
+    // Helper to get toggle for a subcategory
+    const getMainToggle = (subKey: string) => {
+        if (subKey.startsWith("financial_")) return filter.toggle_financial;
+        if (subKey.startsWith("marketing_")) return filter.toggle_marketing;
+        if (subKey.startsWith("security_")) return filter.toggle_security;
+        if (subKey.startsWith("deadline_")) return filter.toggle_deadline;
+        if (subKey.startsWith("work_")) return filter.toggle_work;
+        if (subKey.startsWith("personal_")) return filter.toggle_personal;
+        if (subKey.startsWith("legal_")) return filter.toggle_legal;
+        return filter.toggle_custom;
+    };
 
     // 2️⃣ Primary category contribution
     let primaryScore = 0;
@@ -453,28 +470,24 @@ export function calculateFinalScore(
         let sumPrimary = 0;
         let countPrimary = 0;
 
-        for (let i = 0; i < categories.primary.subcategory.length; i++) {
-            const subKey = categories.primary.subcategory[i];
+        console.log("--- Primary Categories ---");
+        for (const subKey of categories.primary.subcategory) {
+            const toggle = getMainToggle(subKey);
+                            // @ts-ignore - filter has all subcategory keys
+            const value = toggle ? filter[subKey] ?? 0 : 0;
+            const used = toggle ? value : 0;
 
-            // Determine main category toggle
-            let mainCategoryToggle = false;
-            if (subKey.startsWith("financial_")) mainCategoryToggle = filter.toggle_financial;
-            else if (subKey.startsWith("marketing_")) mainCategoryToggle = filter.toggle_marketing;
-            else if (subKey.startsWith("security_")) mainCategoryToggle = filter.toggle_security;
-            else if (subKey.startsWith("deadline_")) mainCategoryToggle = filter.toggle_deadline;
-            else if (subKey.startsWith("operational_")) mainCategoryToggle = filter.toggle_operational;
-            else if (subKey.startsWith("personal_")) mainCategoryToggle = filter.toggle_personal;
-            else if (subKey.startsWith("misc_")) mainCategoryToggle = filter.toggle_misc;
-            else mainCategoryToggle = filter.toggle_custom;
+            console.log(`Subcategory: ${subKey}`);
+            console.log(`  Toggle: ${toggle}`);
+            if (toggle) console.log(`  Value from filter: ${value}`);
+            console.log(`  Contribution: ${value} × 1 = ${used}`);
 
-            if (mainCategoryToggle) {
-                // @ts-ignore - filter has all subcategory keys
-                sumPrimary += filter[subKey] ?? 0;
-            }
+            sumPrimary += used;
             countPrimary++;
         }
 
         primaryScore = sumPrimary / countPrimary;
+        console.log(`Primary Score Average: ${sumPrimary} ÷ ${countPrimary} = ${primaryScore}`);
     }
 
     // 3️⃣ Secondary category contribution
@@ -483,39 +496,44 @@ export function calculateFinalScore(
         let sumSecondary = 0;
         let countSecondary = 0;
 
-        for (let i = 0; i < categories.secondary.length; i++) {
-            const sec = categories.secondary[i];
-            for (let j = 0; j < sec.subcategory.length; j++) {
-                const subKey = sec.subcategory[j];
+        console.log("--- Secondary Categories ---");
+        for (const sec of categories.secondary) {
+            for (const subKey of sec.subcategory) {
+                const toggle = getMainToggle(subKey);
+                                // @ts-ignore - filter has all subcategory keys
+                const value = toggle ? filter[subKey] ?? 0 : 0;
+                const contribution = toggle ? value * 1 : 0;
 
-                // Determine main category toggle
-                let mainCategoryToggle = false;
-                if (subKey.startsWith("financial_")) mainCategoryToggle = filter.toggle_financial;
-                else if (subKey.startsWith("marketing_")) mainCategoryToggle = filter.toggle_marketing;
-                else if (subKey.startsWith("security_")) mainCategoryToggle = filter.toggle_security;
-                else if (subKey.startsWith("deadline_")) mainCategoryToggle = filter.toggle_deadline;
-                else if (subKey.startsWith("operational_")) mainCategoryToggle = filter.toggle_operational;
-                else if (subKey.startsWith("personal_")) mainCategoryToggle = filter.toggle_personal;
-                else if (subKey.startsWith("misc_")) mainCategoryToggle = filter.toggle_misc;
-                else mainCategoryToggle = filter.toggle_custom;
+                console.log(`Subcategory: ${subKey}`);
+                console.log(`  Toggle: ${toggle}`);
+                if (toggle) console.log(`  Value from filter: ${value}`);
+                console.log(`  Contribution: ${value} × 1 = ${contribution}`);
 
-                if (mainCategoryToggle) {
-                    // @ts-ignore - filter has all subcategory keys
-                    sumSecondary += filter[subKey] ?? 0;
-                }
+                sumSecondary += contribution;
                 countSecondary++;
             }
         }
 
         if (countSecondary > 0) {
-            secondaryScore = (sumSecondary / countSecondary) * 0.15;
+            const secondaryWeight = 0.25;
+            secondaryScore = (sumSecondary / countSecondary) * secondaryWeight;
+            console.log(
+                `Secondary Score Average × Weight: (${sumSecondary} ÷ ${countSecondary}) × ${secondaryWeight} = ${secondaryScore}`
+            );
         }
     }
 
-    // 4️⃣ Determine weights
-    const primaryWeight = categories.secondary.length === 0 ? 0.5 : 0.35;
+    // 4️⃣ Determine primary weight
+    const primaryWeight = categories.secondary.length === 0 ? 0.75 : 0.5;
+    console.log(`Primary Weight: ${primaryWeight}`);
+
     const finalScore = messageScoreContribution + primaryScore * primaryWeight + secondaryScore;
+    console.log(
+        `Final Score: Message(${messageScoreContribution}) + Primary(${primaryScore} × ${primaryWeight} = ${primaryScore * primaryWeight}) + Secondary(${secondaryScore}) = ${finalScore}`
+    );
 
     return Math.round(Math.min(finalScore, 100));
 }
+
+
 
