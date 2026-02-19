@@ -1,11 +1,9 @@
-import { CATEGORIES } from "../constants/emailCategories";
-import { FilterConfig } from "./geminiSchemas";
-
 export function buildEmailAnalysisPrompt(params: {
     emailSender: string;
     emailSubject: string;
     emailBody: string;
     filter: any;
+    customCategory: any;
 }) {
     const MAX_EMAIL_LENGTH = 2000;
     const body =
@@ -14,9 +12,14 @@ export function buildEmailAnalysisPrompt(params: {
             : params.emailBody;
 
     const filter = params.filter;
+    const customCategories = params.customCategory
 
     return `
-You are an AI email assistant.
+You are an AI email assistant. Your main function is to **analyze emails and classify them according to the provided list of categories and subcategories**.  
+
+Do **not** invent or add categories for the sake of having categories. Only assign categories/subcategories that are clearly triggered by the content of the email.  
+
+If the email does not trigger any category or subcategory, the "categories" field should still exist but both "primary" and "secondary" arrays must be empty. **Do not force-add any category.**
 
 Your task is to analyze an incoming email and output a SINGLE, VALID JSON OBJECT.
 
@@ -51,36 +54,42 @@ JSON SCHEMA (STRICT):
       "description": string     // REQUIRED
   } | null,
   "categories": {
-      "primary": {
-          "category": string,        // top-level
-          "subcategory": string[]    // contributing subcategories
-      },
-      "secondary": [
-          {
-              "category": string,
-              "subcategory": string[]
-          }
-      ]
+      "primary": string[],      // list of subcategory keys, e.g., ["financial_subscription_renewal"]
+      "secondary": string[]     // list of other relevant subcategory keys
   }
 }
 
 ==============================
 Category Rules:
 ==============================
-1. "categories" MUST be included.
-2. "primary" = top-level category + subcategories contributing most.
-3. "secondary" = other relevant categories.
+1. "categories" MUST always be included, even if empty.
+2. "primary" = list of subcategory keys contributing most to the email. If none, use an empty array.
+3. "secondary" = list of other relevant subcategory keys. If none, return an empty array.
 4. Only include categories/subcategories triggered by email content.
-5. DO NOT invent new categories/subcategories; use only provided ones.
-6. Each subcategory array must have ≥1 subcategory.
-7. If no secondary categories, return an empty array.
-8. Ensure JSON matches the structure exactly.
+5. Do NOT invent new categories/subcategories; use only the provided ones.
+6. Ensure JSON matches the structure exactly.
+7. If no categories are triggered, still return "categories": {"primary": [], "secondary": []}.
 
-Available Categories / Subcategories:
-${JSON.stringify(CATEGORIES, null, 2)}
+Available Categories:
+${JSON.stringify(filter, null, 2)}
+Pay close attention to the following categories. Read each description carefully to understand what kind of emails they apply to, which will help you classify the emails correctly:
+${JSON.stringify(customCategories, null, 2)}
 
-These are the custom categories the user has set:
-${JSON.stringify(filter.custom_catgeories, null, 2)}
+==============================
+Example of Valid Categories Output:
+==============================
+{
+  "primary": ["financial_subscription_renewal", "financial_failed_payment"],
+  "secondary": ["work_task_assigned", "marketing_newsletter"]
+}
+
+==============================
+Example with No Categories Triggered:
+==============================
+{
+  "primary": [],
+  "secondary": []
+}
 
 ==============================
 Email Info:

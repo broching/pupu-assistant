@@ -6,18 +6,19 @@ export async function analyzeEmailWithAI(params: {
   sender: string;
   subject: string;
   body: string;
-  filter: Record<string, unknown>;
+  result: Record<string, string>;
+  customCategory: any[]
 }): Promise<EmailAnalysisResult> {
   const ai = new GeminiAI();
-  console.log('ai reached')
   const prompt = buildEmailAnalysisPrompt({
     emailSender: params.sender,
     emailSubject: params.subject,
     emailBody: params.body,
-    filter: params.filter,
+    filter: params.result,
+    customCategory: params.customCategory
   });
-  console.log('test ', params.filter.custom_categories)
+  console.log("prompt",prompt)
   const res = ai.generateJSON<EmailAnalysisResult>(prompt);
-  console.log(await res)
+  console.log('custom category', params.customCategory)
   return res;
 }
