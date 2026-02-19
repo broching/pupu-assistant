@@ -20,6 +20,12 @@ export type EmailAnalysisResult = {
   usageTokens: any;
 };
 
+export type CustomCategoryResult = {
+  user_facing_category: string;
+  category: string;
+  description: string;
+}
+
 // Filter configuration
 export type FilterConfig = {
   // =========================

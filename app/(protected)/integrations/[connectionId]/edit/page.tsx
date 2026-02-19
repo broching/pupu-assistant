@@ -5,24 +5,21 @@ import { useRouter, useParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { useApiClient } from "@/app/utils/axiosClient";
-import { ArrowLeft, Info, Plus } from "lucide-react";
+import { ArrowLeft, Check, Info, Pencil, Trash2 } from "lucide-react";
 import { useUser } from "@/app/context/userContext";
 import { ContentLayout } from "@/components/admin-panel/content-layout";
 import { CATEGORIES } from "@/lib/constants/emailCategories";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
+import CategoriesGrid from "@/components/integrations/CategoriesGrid";
+import TelegramFrequencyCard from "@/components/integrations/TelegramFrequencyCard";
+import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type CustomItem = { label: string; key: string; weight: number };
+type CustomItem = { id: string; label: string; key: string; weight: number; description: string; };
 
 export default function EditIntegrationPage() {
     const router = useRouter();
@@ -49,6 +46,9 @@ export default function EditIntegrationPage() {
     });
 
     const [customItems, setCustomItems] = useState<CustomItem[]>([]);
+    const [customRuleInput, setCustomRuleInput] = useState("");
+    const [generatingRule, setGeneratingRule] = useState(false);
+
     const [initialLoading, setInitialLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [filterLoading, setFilterLoading] = useState(false);
@@ -65,9 +65,20 @@ export default function EditIntegrationPage() {
     };
 
     const breakpointColumnsObj = {
-        default: 2, // 2 columns on desktop
-        768: 1,     // 1 column on mobile
+        default: 2,
+        768: 1,
     };
+    type GenerationState = "idle" | "generating" | "preview";
+
+    const [generationState, setGenerationState] =
+        useState<GenerationState>("idle");
+
+    const [generatedRule, setGeneratedRule] = useState<{
+        category: string;
+        userFacingCategory: string;
+        description: string;
+    } | null>(null);
+
 
     /* ------------------------------ */
     /* Fetch integration + filter     */
@@ -105,7 +116,6 @@ export default function EditIntegrationPage() {
         setFilterLoading(true);
         try {
             const { data } = await apiClient.get(`/api/filter/${id}`);
-
             setMinScore(data.min_score_for_telegram ?? 50);
 
             const initWeights: Record<string, number> = {};
@@ -125,17 +135,7 @@ export default function EditIntegrationPage() {
                 toggle_work: data.toggle_work ?? true,
                 toggle_personal: data.toggle_personal ?? true,
                 toggle_legal: data.toggle_legal ?? true,
-                toggle_custom: data.toggle_custom ?? false,
             });
-
-            // load custom items
-            setCustomItems(
-                Object.entries(data.custom_categories || {}).map(([key, weight]) => ({
-                    label: key,
-                    key,
-                    weight: Number(weight),
-                }))
-            );
         } catch (err) {
             console.error(err);
             toast.error("Failed to load filter.");
@@ -145,12 +145,95 @@ export default function EditIntegrationPage() {
     };
 
     /* ------------------------------ */
+    /* Generate Custom Rule (AI)      */
+    /* ------------------------------ */
+    const handleGenerateCustomRule = async () => {
+        if (!customRuleInput.trim()) {
+            toast.error("Please describe what you'd like us to monitor.");
+            return;
+        }
+
+        try {
+            setGenerationState("generating");
+
+            const { data } = await apiClient.post(
+                "/api/custom-category/generate-custom-category",
+                { userInput: customRuleInput }
+            );
+
+            setGeneratedRule({
+                category: data.category,
+                userFacingCategory: data.user_facing_category,
+                description: data.description,
+            });
+
+            setGenerationState("preview");
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to generate custom rule.");
+            setGenerationState("idle");
+        }
+    };
+
+    const handleConfirmRule = async () => {
+        if (!generatedRule || !filterId || !emailAddress) return;
+
+        try {
+            const res = await apiClient.post("/api/custom-category", {
+                filter_id: filterId,
+                connection_id: connectionId, // from useParams()
+                category: generatedRule.category,
+                user_facing_category: generatedRule.userFacingCategory,
+                description: generatedRule.description,
+            });
+            setCustomItems((prev) => [
+                ...prev,
+                {
+                    id: res.data.id,
+                    key: generatedRule.category,
+                    label: generatedRule.userFacingCategory,
+                    description: generatedRule.description,
+                    weight: res.data.weight, // default weight
+                },
+            ]);
+
+            setToggles((prev) => ({
+                ...prev,
+                toggle_custom: true,
+            }));
+
+            toast.success("Custom monitoring rule added successfully.");
+
+            setGeneratedRule(null);
+            setCustomRuleInput("");
+            setGenerationState("idle");
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to confirm custom rule.");
+        }
+    };
+
+
+    const handleEditRule = () => {
+        if (!generatedRule) return;
+
+        setCustomRuleInput(generatedRule.description);
+        setGenerationState("idle");
+    };
+
+    const handleCancelRule = () => {
+        setGeneratedRule(null);
+        setCustomRuleInput("");
+        setGenerationState("idle");
+    };
+
+
+    /* ------------------------------ */
     /* Save                            */
     /* ------------------------------ */
     const handleSave = async () => {
         if (!filterId) return;
 
-        // Validate custom items
         for (const item of customItems) {
             if (!item.label.trim()) {
                 toast.error("Custom labels cannot be empty");
@@ -158,19 +241,20 @@ export default function EditIntegrationPage() {
             }
         }
 
-        const customObj: Record<string, number> = {};
-        customItems.forEach((item) => {
-            customObj[item.label] = item.weight;
-        });
         setSaving(true);
         try {
             await apiClient.put(`/api/filter/${filterId}`, {
                 min_score_for_telegram: minScore,
                 ...weights,
                 ...toggles,
-                custom_categories: customObj,
             });
-
+            // 2️⃣ Update custom categories individually
+            for (const item of customItems) {
+                await apiClient.put(`/api/custom-category`, {
+                    id: item.id,          // key is the UUID from Supabase
+                    weight: item.weight,
+                });
+            }
             toast.success("Email settings updated successfully.");
             router.push("/account");
         } catch (err) {
@@ -180,6 +264,49 @@ export default function EditIntegrationPage() {
             setSaving(false);
         }
     };
+
+    const handleDeleteCustomCategory = async (sub: CustomItem) => {
+        try {
+            // Optimistically remove the item from UI
+            setCustomItems((prev) => prev.filter((item) => item.key !== sub.key));
+
+            // Call the DELETE API
+            await apiClient.delete(`/api/custom-category?id=${sub.id}`);
+
+            toast.success(`"${sub.label}" was successfully deleted.`);
+        } catch (err) {
+            console.error(err);
+            toast.error("Failed to delete custom monitoring.");
+            // Optional: Revert removal if you want
+            // setCustomItems(prev => [...prev, sub]);
+        }
+    };
+
+
+    useEffect(() => {
+        if (!user?.id || !connectionId) return;
+
+        const fetchCustomCategories = async () => {
+            try {
+                const { data } = await apiClient.get(`/api/custom-category?connection_id=${connectionId}`);
+                if (data?.length) {
+                    const mappedItems: CustomItem[] = data.map((item: any) => ({
+                        id: item.id,
+                        label: item.user_facing_category,
+                        key: item.category,
+                        description: item.description,
+                        weight: item.weight ?? 70,
+                    }));
+                    setCustomItems(mappedItems);
+                }
+            } catch (err) {
+                console.error(err);
+                toast.error("Failed to load custom categories.");
+            }
+        };
+
+        fetchCustomCategories();
+    }, [user?.id, connectionId]);
 
     if (initialLoading)
         return <p className="text-center mt-10">Loading...</p>;
@@ -196,7 +323,10 @@ export default function EditIntegrationPage() {
                 <Card className="p-6 space-y-6">
                     {/* Header */}
                     <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => router.push('/account')}>
+                        <button
+                            type="button"
+                            onClick={() => router.push("/account")}
+                        >
                             <ArrowLeft className="h-5 w-5" />
                         </button>
                         <h1 className="text-xl font-semibold">
@@ -209,214 +339,208 @@ export default function EditIntegrationPage() {
                         <Input value={emailAddress} disabled />
                     </div>
 
-                    {/* Telegram Frequency */}
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <Label>Telegram Frequency</Label>
-                            <span className="text-xs text-muted-foreground ml-3 hidden sm:inline">
-                                Lower → more notifications, Higher → only critical
-                            </span>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            <div className="w-3/4">
-                                <Slider
-                                    value={[minScore]}
-                                    min={0}
-                                    max={100}
-                                    step={1}
-                                    onValueChange={(value) => {
-                                        const val = Array.isArray(value)
-                                            ? value[0]
-                                            : value;
-                                        setMinScore(val);
-                                    }}
-                                />
-                            </div>
-                            <div className="text-sm text-muted-foreground w-6 text-right">
-                                {minScore}
-                            </div>
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger>
-                                        <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs text-sm">
-                                        Set the minimum score an email must reach for
-                                        Telegram notifications to be sent.
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
-
-                        <div className="text-sm font-medium text-muted-foreground">
-                            Notification Frequency:{" "}
-                            <span className="font-semibold">
-                                {minScore <= 30
-                                    ? "Frequent"
-                                    : minScore <= 70
-                                        ? "Moderate"
-                                        : "Critical only"}
-                            </span>
-                        </div>
-                    </div>
+                    <TelegramFrequencyCard
+                        minScore={minScore}
+                        setMinScore={setMinScore}
+                    />
 
                     <Separator />
 
-                    {/* Category Controls */}
+                    {/* What should we monitor */}
                     <div>
-                        <h2 className="text-xl font-semibold mb-4">
-                            What should we monitor?
-                        </h2>
+                        <div className="mb-4">
+                            <h2 className="text-xl font-semibold mb-1">
+                                What should we monitor?
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                Tell us what you want to monitor, Pupu AI will do the rest.
+                            </p>
+                        </div>
 
-                        <Masonry
-                            breakpointCols={breakpointColumnsObj}
-                            className="flex gap-6"
-                            columnClassName="flex flex-col gap-6"
-                        >
-                            {CATEGORIES.map((cat) => {
-                                const toggleKey = CATEGORY_TOGGLE_MAP[cat.name] as keyof typeof toggles;
-                                const isEnabled = toggleKey ? toggles[toggleKey] : true;
+                        {/* AI Custom Rule Input */}
+                        <Card className="p-4 mb-6 space-y-4 transition-all duration-300">
+                            {generationState === "idle" && (
+                                <>
+                                    <div className="space-y-2">
 
-                                return (
-                                    <div key={cat.name} className="border rounded-xl p-4 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <p className="font-medium">{cat.name}</p>
-                                            {toggleKey && (
-                                                <Switch
-                                                    checked={isEnabled}
-                                                    onCheckedChange={(checked) =>
-                                                        setToggles((prev: any) => ({ ...prev, [toggleKey]: checked }))
-                                                    }
-                                                />
-                                            )}
-                                        </div>
-
-                                        {/* Subcategories */}
-                                        <div
-                                            className={`overflow-hidden transition-all duration-300 ease-in-out ${isEnabled ? "max-h-[1000px] opacity-100 mt-3" : "max-h-0 opacity-0"
-                                                }`}
-                                        >
-                                            <div className="space-y-3 pb-1">
-                                                {cat.subcategories.map((sub) => (
-                                                    <div key={sub.key} className="flex items-center gap-2 text-sm">
-                                                        <div className="flex-1">
-                                                            <div className="flex justify-between">
-                                                                <span>{sub.label}</span>
-                                                                <span>{weights[sub.key]}</span>
-                                                            </div>
-
-                                                            <Slider
-                                                                className="mt-1"
-                                                                value={[weights[sub.key] ?? 50]}
-                                                                min={0}
-                                                                max={100}
-                                                                step={1}
-                                                                onValueChange={(value) => {
-                                                                    const val = Array.isArray(value) ? value[0] : value;
-                                                                    setWeights((prev: any) => ({ ...prev, [sub.key]: val }));
-                                                                    setTooltipOpenKey(sub.key);
-                                                                    setTimeout(
-                                                                        () =>
-                                                                            setTooltipOpenKey((current) =>
-                                                                                current === sub.key ? null : current
-                                                                            ),
-                                                                        5000
-                                                                    );
-                                                                }}
-                                                            />
-                                                        </div>
-
-                                                        <TooltipProvider>
-                                                            <Tooltip
-                                                                open={tooltipOpenKey === sub.key || undefined}
-                                                                onOpenChange={() => { }}
-                                                            >
-                                                                <TooltipTrigger asChild>
-                                                                    <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent className="max-w-xs text-sm">{sub.explanation}</TooltipContent>
-                                                            </Tooltip>
-                                                        </TooltipProvider>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-
-                            {/* Custom Category Card */}
-                            <div className="border rounded-xl p-4 space-y-3">
-                                <div className="flex items-center justify-between">
-                                    <p className="font-medium">Custom Categories</p>
-                                    <Switch
-                                        checked={toggles.toggle_custom}
-                                        onCheckedChange={(checked) =>
-                                            setToggles((prev: any) => ({ ...prev, toggle_custom: checked }))
-                                        }
-                                    />
-                                </div>
-
-                                <div
-                                    className={`overflow-hidden transition-all duration-300 ease-in-out ${toggles.toggle_custom ? "max-h-[2000px] opacity-100 mt-3" : "max-h-0 opacity-0"
-                                        }`}
-                                >
-                                    <div className="space-y-3 pb-1">
-                                        <button
-                                            type="button"
-                                            className="w-full border-2 border-dashed border-gray-300 rounded-xl p-3 flex items-center justify-center gap-2 text-gray-500 hover:border-gray-400 hover:text-gray-600 transition"
-                                            onClick={() =>
-                                                setCustomItems((prev: any) => [
-                                                    ...prev,
-                                                    { label: "", key: crypto.randomUUID(), weight: 50 },
-                                                ])
+                                        <Textarea
+                                            value={customRuleInput}
+                                            onChange={(e) =>
+                                                setCustomRuleInput(e.target.value)
                                             }
-                                        >
-                                            <Plus className="w-4 h-4" /> Add Custom
-                                        </button>
-
-                                        {customItems.map((item: any, index: number) => (
-                                            <div key={item.key} className="flex items-center gap-2 text-sm">
-                                                <div className="flex-1">
-                                                    <div className="flex justify-between mb-1 text-sm text-muted-foreground">
-                                                        <span className="ml-1">
-                                                            <Input
-                                                                placeholder="Custom Category"
-                                                                value={item.label}
-                                                                onChange={(e) =>
-                                                                    setCustomItems((prev: any) => {
-                                                                        const copy = [...prev];
-                                                                        copy[index].label = e.target.value;
-                                                                        return copy;
-                                                                    })
-                                                                }
-                                                                className="flex-1"
-                                                            />
-                                                        </span>
-                                                        <span>{item.weight}</span>
-                                                    </div>
-                                                    <Slider
-                                                        value={[item.weight]}
-                                                        min={0}
-                                                        max={100}
-                                                        step={1}
-                                                        onValueChange={(value) => {
-                                                            const val = Array.isArray(value) ? value[0] : value;
-                                                            setCustomItems((prev: any) => {
-                                                                const copy = [...prev];
-                                                                copy[index].weight = val;
-                                                                return copy;
-                                                            });
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ))}
+                                            rows={5}
+                                            className="resize-none"
+                                            placeholder={`• Alert me when my American Express credit card bill is due within 5 days`}
+                                        />
                                     </div>
+
+                                    <Button
+                                        type="button"
+                                        onClick={handleGenerateCustomRule}
+                                        className="w-full"
+                                    >
+                                        Generate With Pupu AI
+                                    </Button>
+                                </>
+                            )}
+
+                            {generationState === "generating" && (
+                                <div className="text-center py-6 animate-pulse">
+                                    <p className="text-lg font-medium">
+                                        Generating your smart monitoring rule...
+                                    </p>
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                        Please don’t close this browser. Pupu is crafting
+                                        something tailored just for you.
+                                    </p>
                                 </div>
-                            </div>
-                        </Masonry>
+                            )}
+
+                            {generationState === "preview" && generatedRule && (
+                                <div className="space-y-4 animate-fade-in">
+                                    <div className="bg-muted rounded-lg p-4">
+                                        <p className="text-sm text-muted-foreground mb-2">
+                                            Pupu
+                                        </p>
+
+                                        <p className="leading-relaxed">
+                                            Hi {user?.user_metadata.name || "there"} 👋
+                                        </p>
+
+                                        <p className="mt-2 leading-relaxed">
+                                            You’d like to monitor emails related to{" "}
+                                            <strong>{generatedRule.userFacingCategory}</strong>.
+                                        </p>
+
+                                        <p className="mt-2 leading-relaxed">
+                                            I'll notify you about{" "}
+                                            <strong>{generatedRule.description}</strong>.
+                                        </p>
+
+                                        <p className="mt-3 leading-relaxed">
+                                            Once you confirm, I’ll start monitoring this rule for you.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <Button
+                                            type="button"
+                                            onClick={handleConfirmRule}
+                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                        >
+                                            <Check className="w-4 h-4" />
+                                            <span className="hidden sm:inline ml-2">Confirm</span>
+                                        </Button>
+
+                                        <Button
+                                            type="button"
+                                            variant="default"
+                                            onClick={handleEditRule}
+                                            className="flex-1"
+                                        >
+                                            <Pencil className="w-4 h-4" />
+                                            <span className="hidden sm:inline ml-2">Edit</span>
+                                        </Button>
+
+                                        <Button
+                                            type="button"
+                                            variant="destructive"
+                                            onClick={handleCancelRule}
+                                            className="flex-1"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span className="hidden sm:inline ml-2">Cancel</span>
+                                        </Button>
+                                    </div>
+
+
+                                </div>
+                            )}
+                            {customItems?.length > 0 && (
+                                <div className="space-y-6 mt-4">
+                                    <h3 className="text-lg font-semibold">Your Custom Monitoring Rules</h3>
+                                    {customItems.map((sub) => (
+                                        <div key={sub.key} className="space-y-1">
+                                            {/* Top row: label + tooltip + weight */}
+                                            <div className="flex items-center justify-between text-sm">
+                                                <div className="flex items-center gap-1">
+                                                    <span>{sub.label}</span>
+                                                    <TooltipProvider>
+                                                        <Tooltip
+                                                            open={tooltipOpenKey === sub.key || undefined}
+                                                            onOpenChange={() => { }}
+                                                        >
+                                                            <TooltipTrigger asChild>
+                                                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent className="max-w-xs text-sm">
+                                                                {sub.description}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                </div>
+
+                                                {/* Weight number far right */}
+                                                <span className="font-medium mr-1">{sub.weight}</span>
+                                            </div>
+
+                                            {/* Bottom row: slider + delete icon */}
+                                            <div className="flex items-center gap-2">
+                                                <Slider
+                                                    className="flex-1"
+                                                    value={[sub.weight ?? 70]}
+                                                    min={0}
+                                                    max={100}
+                                                    step={1}
+                                                    onValueChange={(value) => {
+                                                        const val = Array.isArray(value) ? value[0] : value;
+                                                        setCustomItems((prev) =>
+                                                            prev.map((item) =>
+                                                                item.key === sub.key ? { ...item, weight: val } : item
+                                                            )
+                                                        );
+                                                        setTooltipOpenKey(sub.key);
+                                                        setTimeout(
+                                                            () =>
+                                                                setTooltipOpenKey((current) =>
+                                                                    current === sub.key ? null : current
+                                                                ),
+                                                            2000
+                                                        );
+                                                    }}
+                                                />
+
+                                                {/* Delete icon far right */}
+                                                <Trash2
+                                                    className="h-5 w-5 text-destructive cursor-pointer"
+                                                    onClick={() => handleDeleteCustomCategory(sub)}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+
+                        </Card>
+                        <div className="mb-4 mt-8">
+                            <h2 className="text-xl font-semibold mb-1">
+                                Don’t know what to monitor?
+                            </h2>
+                            <p className="text-sm text-muted-foreground">
+                                These rules are pre-defined by our system and can serve as a starting point if you don’t want to create your own custom AI rules.
+                            </p>
+                        </div>
+                        <CategoriesGrid
+                            initialLoading={initialLoading}
+                            breakpointColumnsObj={breakpointColumnsObj}
+                            CATEGORY_TOGGLE_MAP={CATEGORY_TOGGLE_MAP}
+                            toggles={toggles}
+                            setToggles={setToggles}
+                            weights={weights}
+                            setWeights={setWeights}
+                            tooltipOpenKey={tooltipOpenKey}
+                            setTooltipOpenKey={setTooltipOpenKey}
+                        />
                     </div>
 
                     <Button

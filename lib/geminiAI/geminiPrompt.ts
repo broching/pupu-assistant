@@ -2,20 +2,20 @@ import { CATEGORIES } from "../constants/emailCategories";
 import { FilterConfig } from "./geminiSchemas";
 
 export function buildEmailAnalysisPrompt(params: {
-  emailSender: string;
-  emailSubject: string;
-  emailBody: string;
-  filter: any;
+    emailSender: string;
+    emailSubject: string;
+    emailBody: string;
+    filter: any;
 }) {
-  const MAX_EMAIL_LENGTH = 2000;
-  const body =
-    params.emailBody.length > MAX_EMAIL_LENGTH
-      ? params.emailBody.slice(0, MAX_EMAIL_LENGTH) + " [truncated]"
-      : params.emailBody;
+    const MAX_EMAIL_LENGTH = 2000;
+    const body =
+        params.emailBody.length > MAX_EMAIL_LENGTH
+            ? params.emailBody.slice(0, MAX_EMAIL_LENGTH) + " [truncated]"
+            : params.emailBody;
 
-  const filter = params.filter;
+    const filter = params.filter;
 
-  return `
+    return `
 You are an AI email assistant.
 
 Your task is to analyze an incoming email and output a SINGLE, VALID JSON OBJECT.
@@ -171,5 +171,77 @@ How to fix:
     - Add 0Auth using this link: https://d2v8tf04.na1.hubspotlinks.com/...
 2️⃣ Restart your endpoint with the policy attached
     - Restart your endpoint here: https://d2v8tdff04.na1.hsdubspotldinks.com/...
+`;
+}
+
+export function buildGenerateCustomCatgegoryPrompt(params: { userInput: string }) {
+    const { userInput } = params;
+
+    return `
+You are an AI assistant helping generate structured email monitoring categories.
+
+A user has provided the following input describing what emails they want to monitor:
+
+"${userInput}"
+
+Your task is to refactor this into a structured JSON object with the following format:
+
+{
+  "user_facing_category": string,
+  "category": string,
+  "description": string
+}
+
+Field Requirements:
+
+1. user_facing_category:
+- Clear, natural, grammatically correct
+- Proper capitalization
+- Easy for a non-technical user to understand
+- No trailing punctuation
+
+2. category:
+- Machine-friendly key
+- Lowercase
+- snake_case
+- No spaces
+- No special characters
+
+3. description:
+- Must ALWAYS begin with: "emails that"
+- Written in natural, fluent English
+- Third-person perspective
+- Concise but clear
+- No trailing punctuation
+- No quotation marks
+- No extra commentary
+- No emojis
+- No period at the end
+
+The description must smoothly fit into this sentence:
+
+"I'll notify you about {description}"
+
+So it must grammatically complete that sentence.
+
+Output Rules:
+- Return valid JSON only
+- No explanations
+- No markdown
+- No additional text
+
+Example:
+
+User input:
+"Alert me if DBS sends transaction emails above $1000"
+
+Output:
+{
+  "user_facing_category": "DBS High-Value Transaction Alerts",
+  "category": "dbs_high_value_transaction_alerts",
+  "description": "emails that notify the user about DBS transactions exceeding $1000"
+}
+
+Now process the user input above and return the JSON.
 `;
 }
