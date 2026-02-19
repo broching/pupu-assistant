@@ -184,13 +184,13 @@ export async function GET(req: NextRequest) {
         email_connection_id: updatedId,
 
         // Category Toggles
-        toggle_financial: true,
-        toggle_marketing: true,
-        toggle_security: true,
-        toggle_deadline: true,
-        toggle_work: true,
-        toggle_personal: true,
-        toggle_legal: true,
+        toggle_financial: false,
+        toggle_marketing: false,
+        toggle_security: false,
+        toggle_deadline: false,
+        toggle_work: false,
+        toggle_personal: false,
+        toggle_legal: false,
         toggle_custom: false,
 
         // =========================

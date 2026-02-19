@@ -16,8 +16,7 @@ import { ContentLayout } from "@/components/admin-panel/content-layout";
 import { CATEGORIES } from "@/lib/constants/emailCategories";
 import CategoriesGrid from "@/components/integrations/CategoriesGrid";
 import TelegramFrequencyCard from "@/components/integrations/TelegramFrequencyCard";
-import { Slider } from "@/components/ui/slider";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import CustomCategoriesCard from "@/components/integrations/CustomCategoriesCard";
 
 type CustomItem = { id: string; label: string; key: string; weight: number; description: string; };
 
@@ -47,7 +46,6 @@ export default function EditIntegrationPage() {
 
     const [customItems, setCustomItems] = useState<CustomItem[]>([]);
     const [customRuleInput, setCustomRuleInput] = useState("");
-    const [generatingRule, setGeneratingRule] = useState(false);
 
     const [initialLoading, setInitialLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -78,6 +76,10 @@ export default function EditIntegrationPage() {
         userFacingCategory: string;
         description: string;
     } | null>(null);
+
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState<CustomItem | null>(null);
+
 
 
     /* ------------------------------ */
@@ -265,24 +267,6 @@ export default function EditIntegrationPage() {
         }
     };
 
-    const handleDeleteCustomCategory = async (sub: CustomItem) => {
-        try {
-            // Optimistically remove the item from UI
-            setCustomItems((prev) => prev.filter((item) => item.key !== sub.key));
-
-            // Call the DELETE API
-            await apiClient.delete(`/api/custom-category?id=${sub.id}`);
-
-            toast.success(`"${sub.label}" was successfully deleted.`);
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to delete custom monitoring.");
-            // Optional: Revert removal if you want
-            // setCustomItems(prev => [...prev, sub]);
-        }
-    };
-
-
     useEffect(() => {
         if (!user?.id || !connectionId) return;
 
@@ -356,172 +340,23 @@ export default function EditIntegrationPage() {
                                 Tell us what you want to monitor, Pupu AI will do the rest.
                             </p>
                         </div>
-
-                        {/* AI Custom Rule Input */}
-                        <Card className="p-4 mb-6 space-y-4 transition-all duration-300">
-                            {generationState === "idle" && (
-                                <>
-                                    <div className="space-y-2">
-
-                                        <Textarea
-                                            value={customRuleInput}
-                                            onChange={(e) =>
-                                                setCustomRuleInput(e.target.value)
-                                            }
-                                            rows={5}
-                                            className="resize-none"
-                                            placeholder={`• Alert me when my American Express credit card bill is due within 5 days`}
-                                        />
-                                    </div>
-
-                                    <Button
-                                        type="button"
-                                        onClick={handleGenerateCustomRule}
-                                        className="w-full"
-                                    >
-                                        Generate With Pupu AI
-                                    </Button>
-                                </>
-                            )}
-
-                            {generationState === "generating" && (
-                                <div className="text-center py-6 animate-pulse">
-                                    <p className="text-lg font-medium">
-                                        Generating your smart monitoring rule...
-                                    </p>
-                                    <p className="text-sm text-muted-foreground mt-2">
-                                        Please don’t close this browser. Pupu is crafting
-                                        something tailored just for you.
-                                    </p>
-                                </div>
-                            )}
-
-                            {generationState === "preview" && generatedRule && (
-                                <div className="space-y-4 animate-fade-in">
-                                    <div className="bg-muted rounded-lg p-4">
-                                        <p className="text-sm text-muted-foreground mb-2">
-                                            Pupu
-                                        </p>
-
-                                        <p className="leading-relaxed">
-                                            Hi {user?.user_metadata.name || "there"} 👋
-                                        </p>
-
-                                        <p className="mt-2 leading-relaxed">
-                                            You’d like to monitor emails related to{" "}
-                                            <strong>{generatedRule.userFacingCategory}</strong>.
-                                        </p>
-
-                                        <p className="mt-2 leading-relaxed">
-                                            I'll notify you about{" "}
-                                            <strong>{generatedRule.description}</strong>.
-                                        </p>
-
-                                        <p className="mt-3 leading-relaxed">
-                                            Once you confirm, I’ll start monitoring this rule for you.
-                                        </p>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <Button
-                                            type="button"
-                                            onClick={handleConfirmRule}
-                                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                                        >
-                                            <Check className="w-4 h-4" />
-                                            <span className="hidden sm:inline ml-2">Confirm</span>
-                                        </Button>
-
-                                        <Button
-                                            type="button"
-                                            variant="default"
-                                            onClick={handleEditRule}
-                                            className="flex-1"
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                            <span className="hidden sm:inline ml-2">Edit</span>
-                                        </Button>
-
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            onClick={handleCancelRule}
-                                            className="flex-1"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            <span className="hidden sm:inline ml-2">Cancel</span>
-                                        </Button>
-                                    </div>
+                        <CustomCategoriesCard
+                            generationState={generationState}
+                            customRuleInput={customRuleInput}
+                            setCustomRuleInput={setCustomRuleInput}
+                            handleGenerateCustomRule={handleGenerateCustomRule}
+                            generatedRule={generatedRule}
+                            handleConfirmRule={handleConfirmRule}
+                            handleEditRule={handleEditRule}
+                            handleCancelRule={handleCancelRule}
+                            customItems={customItems}
+                            setCustomItems={setCustomItems}
+                            tooltipOpenKey={tooltipOpenKey}
+                            setTooltipOpenKey={setTooltipOpenKey}
+                            userName={user?.user_metadata.name}
+                        />
 
 
-                                </div>
-                            )}
-                            {customItems?.length > 0 && (
-                                <div className="space-y-6 mt-4">
-                                    <h3 className="text-lg font-semibold">Your Custom Monitoring Rules</h3>
-                                    {customItems.map((sub) => (
-                                        <div key={sub.key} className="space-y-1">
-                                            {/* Top row: label + tooltip + weight */}
-                                            <div className="flex items-center justify-between text-sm">
-                                                <div className="flex items-center gap-1">
-                                                    <span>{sub.label}</span>
-                                                    <TooltipProvider>
-                                                        <Tooltip
-                                                            open={tooltipOpenKey === sub.key || undefined}
-                                                            onOpenChange={() => { }}
-                                                        >
-                                                            <TooltipTrigger asChild>
-                                                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent className="max-w-xs text-sm">
-                                                                {sub.description}
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                </div>
-
-                                                {/* Weight number far right */}
-                                                <span className="font-medium mr-1">{sub.weight}</span>
-                                            </div>
-
-                                            {/* Bottom row: slider + delete icon */}
-                                            <div className="flex items-center gap-2">
-                                                <Slider
-                                                    className="flex-1"
-                                                    value={[sub.weight ?? 70]}
-                                                    min={0}
-                                                    max={100}
-                                                    step={1}
-                                                    onValueChange={(value) => {
-                                                        const val = Array.isArray(value) ? value[0] : value;
-                                                        setCustomItems((prev) =>
-                                                            prev.map((item) =>
-                                                                item.key === sub.key ? { ...item, weight: val } : item
-                                                            )
-                                                        );
-                                                        setTooltipOpenKey(sub.key);
-                                                        setTimeout(
-                                                            () =>
-                                                                setTooltipOpenKey((current) =>
-                                                                    current === sub.key ? null : current
-                                                                ),
-                                                            2000
-                                                        );
-                                                    }}
-                                                />
-
-                                                {/* Delete icon far right */}
-                                                <Trash2
-                                                    className="h-5 w-5 text-destructive cursor-pointer"
-                                                    onClick={() => handleDeleteCustomCategory(sub)}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-
-
-                        </Card>
                         <div className="mb-4 mt-8">
                             <h2 className="text-xl font-semibold mb-1">
                                 Don’t know what to monitor?
@@ -545,7 +380,6 @@ export default function EditIntegrationPage() {
 
                     <Button
                         type="submit"
-                        variant="outline"
                         className="w-full"
                         disabled={saving}
                     >
