@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
-import { EmailAnalysisResult } from "./geminiSchemas";
+import { CategoriesObject, CustomCategoryResult, EmailAnalysisResult } from "./geminiSchemas";
 
 export type GeminiGenerateOptions = {
     temperature?: number;
@@ -64,6 +64,20 @@ export class GeminiAI {
 
         try {
             return returnObj;
+        } catch (err) {
+            console.error("❌ Gemini returned invalid JSON (should not happen):", jsonText);
+            throw new Error("Invalid JSON returned from Gemini");
+        }
+    }
+
+        async generateJSONCustomCategory<T>(prompt: string): Promise<CustomCategoryResult> {
+        const result = await this.jsonModel.generateContent(prompt);
+        const text = result.response.text().trim();
+        const jsonText = reconstructJson(text);
+        const parsedText = JSON.parse(jsonText)
+
+        try {
+            return parsedText;
         } catch (err) {
             console.error("❌ Gemini returned invalid JSON (should not happen):", jsonText);
             throw new Error("Invalid JSON returned from Gemini");

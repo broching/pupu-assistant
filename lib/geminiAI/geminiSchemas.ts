@@ -20,6 +20,12 @@ export type EmailAnalysisResult = {
   usageTokens: any;
 };
 
+export type CustomCategoryResult = {
+  user_facing_category: string;
+  category: string;
+  description: string;
+}
+
 // Filter configuration
 export type FilterConfig = {
   // =========================
@@ -122,17 +128,11 @@ export type FilterConfig = {
 };
 
 
-
 export type CategoriesObject = {
-  primary: {
-    category: string;            // top-level category, e.g., "financial"
-    subcategory: string[];       // subcategories contributing the most
-  };
-  secondary: Array<{
-    category: string;
-    subcategory: string[];
-  }>;
+  primary: string[];     // list of subcategory keys contributing most
+  secondary: string[];   // list of other relevant subcategory keys
 };
+
 
 export const defaultFilter = {
   filter_name: "Default filter",

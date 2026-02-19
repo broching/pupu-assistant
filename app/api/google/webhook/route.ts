@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
+    constructFilterObject,
     createOAuthClient,
     ensureValidWatch,
     fetchGmailHistory,
@@ -83,12 +84,7 @@ export async function POST(req: NextRequest) {
             userTokens.filter_id
         );
 
-        if (!filter) {
-            console.log("ℹ️ Using default filter for user", userTokens.user_id);
-            filter = defaultFilter
-        } else {
-            console.log("✅ Loaded filter", filter.id);
-        }
+        const {result, customCategory, categoryData} = await constructFilterObject(filter, userTokens.user_id);
 
         // 🔟 Process histories (AI + DB + Telegram)
         await processHistories(
@@ -96,7 +92,10 @@ export async function POST(req: NextRequest) {
             gmail,
             histories,
             userTokens,
-            filter
+            filter,
+            result,
+            customCategory,
+            categoryData
         );
 
         return NextResponse.json({
