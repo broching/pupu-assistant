@@ -17,6 +17,7 @@ import { useApiClient } from "@/app/utils/axiosClient";
 import { useUser } from "@/app/context/userContext";
 import { useSubscription } from "@/lib/subscription/client";
 import OnboardingTour from "@/components/tutorial/OnBoardingTour";
+import ConnectionsCard from "@/components/integrations/ConnectionsCard";
 
 type TelegramStatus = { connected: boolean; telegram_username?: string };
 type GmailConnection = { id: string; email_address: string; connection_name: string | null; filter_name: string | null };
@@ -132,19 +133,6 @@ export default function Dashboard() {
   const planName = subscription?.planName ?? "free_trial";
   const gmailLimit = hasActivePlan ? PLAN_GMAIL_LIMITS[planName] : 0;
 
-  const handleDisconnectGmail = async (email: string) => {
-    if (!session?.access_token || !user?.id) return;
-    try {
-      setLoading(true);
-      await apiClient.post("/api/auth/google/disconnect", { userId: user.id, email });
-      setConnections((prev) => prev.filter((conn) => conn.email_address !== email));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const CardSkeleton = () => (
     <div className="space-y-3">
       <Skeleton className="h-4 w-1/2" />
@@ -155,84 +143,28 @@ export default function Dashboard() {
 
   return (
     <ContentLayout title="Dashboard">
-      <div className="space-y-6 max-w-7xl mx-auto">
-
-        {/* Warning Alerts */}
-        <div className="space-y-4 max-w-2xl">
-          {/* Telegram Alert */}
-          {!telegramStatus.connected && (
-            <Alert
-              variant="default"
-              className="flex flex-col sm:flex-row items-start sm:items-center justify-between border border-border shadow-sm p-3 gap-2"
-              style={{
-                backgroundColor: "hsl(var(--card))",
-                color: "hsl(var(--card-foreground))",
-              }}
-            >
-              {/* Left: icon + title + description */}
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <AlertTriangleIcon className="h-4 w-4 text-yellow-600 flex-shrink-0" />
-                <div className="flex flex-col">
-                  <AlertTitle className="text-sm font-medium text-yellow-600">
-                    Telegram Not Linked
-                  </AlertTitle>
-                  <p className="text-xs text-muted-foreground mt-1 sm:mt-0">
-                    Link your Telegram account to get started and enable all features.
-                  </p>
-                </div>
-              </div>
-
-              {/* Right: CTA button */}
-              <Button asChild size="sm" variant="outline" className="mt-2 sm:mt-0">
-                <Link href="/account">Link Telegram</Link>
-              </Button>
-            </Alert>
-
-
-          )}
-
-          {/* Gmail Alert */}
-          {hasActivePlan && connections.length === 0 && telegramStatus.connected && (
-            <Alert variant="destructive" className="flex flex-col sm:flex-row items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <AlertTriangleIcon className="h-4 w-4 text-yellow-600" />
-                <AlertTitle className="text-sm font-medium text-yellow-600">
-                  No Gmail Connections
-                </AlertTitle>
-              </div>
-              <div className="mt-2 sm:mt-0">
-                <Button asChild size="sm" variant="outline">
-                  <Link href="/account">Connect Gmail</Link>
-                </Button>
-              </div>
-            </Alert>
-          )}
+      <div className="space-y-6 max-w-4xl mx-auto">
+        {/* Page Title */}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Overview of your connections and email insights.
+          </p>
         </div>
-
-        {/* Gmail Connections Table */}
-        <div className="mt-6">
-          <h3 className="text-lg font-medium mb-3">Gmail Connections</h3>
-          <div className={`relative overflow-x-auto rounded-md border ${(!hasActivePlan || !telegramStatus.connected) ? "blur-sm pointer-events-none select-none" : ""}`}>
-            <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
-              <div className="col-span-8">Email Address</div>
-              <div className="col-span-4 text-right">Actions</div>
-            </div>
-
-            {connections.map((conn, idx) => (
-              <div key={conn.id} className="grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0">
-
-                <div className="col-span-8 flex items-center gap-2 text-muted-foreground"><Mail className="h-4 w-4" /> {conn.email_address}</div>
-
-                <div className="col-span-4 flex justify-end gap-2">
-                  <Button variant="outline" size="sm" onClick={() => router.push(`/integrations/${conn.id}/edit`)}><Pencil className="h-4 w-4 mr-1" /> Edit</Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDisconnectGmail(conn.email_address)} disabled={loading}><FaUnlink className="h-4 w-4 mr-1" /> Disconnect</Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        {loading ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Connections</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CardSkeleton />
+            </CardContent>
+          </Card>
+        ) : (
+          <ConnectionsCard />
+        )}
         {/* Stats Row */}
-        <div className="flex flex-col sm:flex-row sm:items-center mb-3 gap-2">
+        {/* <div className="flex flex-col sm:flex-row sm:items-center mb-3 gap-2">
           <h3 className="text-lg font-medium">Email Analytics</h3>
 
           <Button asChild variant="secondary" size="sm" className="ml-2">
@@ -240,10 +172,10 @@ export default function Dashboard() {
               View Full Email Analytics
             </Link>
           </Button>
-        </div>
+        </div> */}
 
 
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* <div className="grid gap-6 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Total Junk Emails</CardTitle>
@@ -267,12 +199,16 @@ export default function Dashboard() {
               </p>
             </CardContent>
           </Card>
-        </div>
+        </div> */}
 
 
         {/* Google Calendar Embed */}
-        <h3 className="text-lg font-medium mb-3">Your Calendar</h3>
-        <div className="mx-auto relative mt-6 rounded-xl overflow-hidden border bg-background shadow-sm w-full">
+        <h3 className="text-xl font-medium">Calendar</h3>
+        <p className="text-muted-foreground" style={{marginTop:"0"}}>
+          View Your Google Calendar events.
+        </p>
+        <div className="mx-auto relative max-w-4xl mt-6 rounded-xl overflow-hidden border bg-background shadow-sm w-full">
+
           <iframe
             src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarStatus.email || "")}&ctz=Asia/Singapore`}
             width="100%"
