@@ -42,27 +42,41 @@ export default function Home() {
       </section>
       <FeaturesSection />
 
+      {/* How It Works Section */}
+      <section className="py-24 px-6 bg-gradient-to-br from-muted/70 to-muted/10 text-center">
+        <h2 className="text-3xl font-bold mb-12">How It Works</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-12 max-w-5xl mx-auto">
 
-      {/* Integrations / Social Proof */}
-      <section className="py-16 px-6 bg-muted/40">
-        <div className="max-w-6xl mx-auto text-center">
+          {/* Step 1 */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-blue-600 text-white">
+              <Mail className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold mb-2">Connect Gmail</h3>
+            <p>Securely connect one or more Gmail accounts via Google OAuth.</p>
+          </div>
 
-          <h2 className="text-2xl sm:text-3xl font-semibold mb-4">
-            Works with the tools you already use
-          </h2>
-          <p className="text-muted-foreground mb-10 max-w-2xl mx-auto">
-            Connect your inbox and receive notifications instantly on your preferred messaging platforms.
-          </p>
+          {/* Step 2 */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-green-600 text-white">
+              <MessageCircle className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold mb-2">Receive Notifications</h3>
+            <p>Get real-time alerts for important emails on your preferred messaging app.</p>
+          </div>
 
-          <div className="flex flex-wrap justify-center items-center gap-10 opacity-70">
-            <img src="/logos/gmail.svg" alt="Gmail" className="h-10 grayscale hover:grayscale-0 transition" />
-            <img src="/logos/telegram.svg" alt="Telegram" className="h-10 grayscale hover:grayscale-0 transition" />
-            <img src="/logos/stripe.svg" alt="Stripe" className="h-10 grayscale hover:grayscale-0 transition" />
-            <img src="/logos/supabase.svg" alt="Supabase" className="h-10 grayscale hover:grayscale-0 transition" />
+          {/* Step 3 */}
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-purple-600 text-white">
+              <CheckCircle className="w-8 h-8" />
+            </div>
+            <h3 className="font-semibold mb-2">Stay Focused</h3>
+            <p>Filter out noise, prioritize what matters, and manage Gmail connections anytime.</p>
           </div>
 
         </div>
       </section>
+
 
       {/* Pricing & QnA */}
       <section id="qna" className="mt-5 mb-20">
