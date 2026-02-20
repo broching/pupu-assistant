@@ -148,63 +148,62 @@ export default function GmailRow({ telegramConnected = true }: GmailRowProps) {
         <p className="text-sm text-red-600 mt-1">{error}</p>
       ) : null}
 
-{/* Connections Table */}
-<div className="relative overflow-x-auto mt-3">
-  <div
-    className={`min-w-[600px] rounded-md border
+      {/* Connections Table */}
+      <div className="relative overflow-x-auto mt-3">
+        <div
+          className={`min-w-[600px] rounded-md border
       ${((!isActiveSubscription && subscription?.planName !== "free_trial") || !telegramConnected) ? 'blur-sm pointer-events-none select-none' : ''}`}
-  >
-    {/* Table Header */}
-    <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
-      <div className="col-span-6 sm:col-span-8">Email address</div>
-      <div className="col-span-3 sm:col-span-4 text-right">Actions</div>
-    </div>
+        >
+          {/* Table Header */}
+          <div className="grid grid-cols-12 gap-4 border-b bg-muted px-4 py-2 text-xs font-medium text-muted-foreground">
+            <div className="col-span-6 sm:col-span-8">Email address</div>
+            <div className="col-span-3 sm:col-span-4 text-right">Actions</div>
+          </div>
 
-    {/* Rows */}
-    {connections.map((conn, index) => (
-      <div
-        key={conn.id}
-        className={`grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0
-          ${!isActiveSubscription ? "opacity-50 pointer-events-none cursor-not-allowed" : ""}`}
-      >
-        <div className="col-span-6 sm:col-span-8 text-muted-foreground flex items-center gap-2">
-          <Mail className="h-4 w-4" />
-          {conn.email_address}
+          {/* Rows */}
+          {connections.map((conn, index) => (
+            <div
+              key={conn.id}
+              className={`grid grid-cols-12 gap-4 items-center px-4 py-3 text-sm border-b last:border-b-0`}
+            >
+              <div className="col-span-6 sm:col-span-8 text-muted-foreground flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                {conn.email_address}
+              </div>
+              <div className="col-span-3 sm:col-span-4 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(`integrations/${conn.id}/edit`)}
+                  className="flex items-center"
+                >
+                  <Pencil className="h-4 w-4 mr-1" /> Edit
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDisconnectGmail(conn.email_address)}
+                  disabled={loading}
+                  className="flex items-center"
+                >
+                  <FaUnlink className="h-4 w-4 mr-1" /> Disconnect
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="col-span-3 sm:col-span-4 flex justify-end gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`integrations/${conn.id}/edit`)}
-            className="flex items-center"
-          >
-            <Pencil className="h-4 w-4 mr-1" /> Edit
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => handleDisconnectGmail(conn.email_address)}
-            disabled={loading}
-            className="flex items-center"
-          >
-            <FaUnlink className="h-4 w-4 mr-1" /> Disconnect
-          </Button>
-        </div>
-      </div>
-    ))}
-  </div>
 
-  {/* Overlay if subscription inactive or Telegram not connected */}
-  {((!isActiveSubscription && subscription?.planName !== "free_trial") || !telegramConnected) && (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm text-center p-6 space-y-4">
-      <div className="text-md font-semibold">
-        {!isActiveSubscription
-          ? "Upgrade to a paid plan to enable Gmail integrations"
-          : "Please connect Telegram to enable Gmail integrations"}
+        {/* Overlay if subscription inactive or Telegram not connected */}
+        {((!isActiveSubscription && subscription?.planName !== "free_trial") || !telegramConnected) && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm text-center p-6 space-y-4">
+            <div className="text-md font-semibold">
+              {!isActiveSubscription
+                ? "Upgrade to a paid plan to enable Gmail integrations"
+                : "Please connect Telegram to enable Gmail integrations"}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  )}
-</div>
 
 
 
